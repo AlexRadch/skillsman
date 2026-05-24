@@ -9,6 +9,7 @@ const path = require('path');
 const os = require('os');
 const matter = require('gray-matter');
 const { program } = require('commander');
+const pkg = require('./package.json');
 
 // Helper to expand user directory (can be overridden for tests)
 let USER_HOME = os.homedir();
@@ -587,9 +588,9 @@ function usePresets(presetArgs) {
  */
 function main() {
   program
-    .name('skillsman')
-    .description('CLI manager for AI agent skills presets')
-    .version('0.1.0');
+    .name(pkg.name)
+    .description(pkg.description)
+    .version(pkg.version);
 
   program
     .command('init')
