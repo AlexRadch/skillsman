@@ -13,12 +13,45 @@ const pkg = require('./package.json');
 
 // Helper to expand user directory (can be overridden for tests)
 let USER_HOME = os.homedir();
+
+/**
+ * Resolves standard XDG CONFIG HOME directory
+ */
+function getXdgConfigHome(platform = process.platform, env = process.env, home = os.homedir()) {
+  if (env.XDG_CONFIG_HOME) return env.XDG_CONFIG_HOME;
+  if (platform === 'win32') {
+    return env.APPDATA || path.join(home, 'AppData', 'Roaming');
+  }
+  return path.join(home, '.config');
+}
+
+/**
+ * Resolves standard XDG STATE HOME directory
+ */
+function getXdgStateHome(platform = process.platform, env = process.env, home = os.homedir()) {
+  if (env.XDG_STATE_HOME) return env.XDG_STATE_HOME;
+  if (platform === 'win32') {
+    return env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
+  }
+  return path.join(home, '.local', 'state');
+}
+
+/**
+ * Resolves standard XDG DATA HOME directory
+ */
+function getXdgDataHome(platform = process.platform, env = process.env, home = os.homedir()) {
+  if (env.XDG_DATA_HOME) return env.XDG_DATA_HOME;
+  if (platform === 'win32') {
+    return env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
+  }
+  return path.join(home, '.local', 'share');
+}
+
 let AGENTS_DIR = path.join(USER_HOME, '.agents');
 let SKILLS_DIR = path.join(AGENTS_DIR, 'skills');
-let SKILLSMAN_DIR = path.join(AGENTS_DIR, 'skillsman');
-let LIBRARY_DIR = path.join(SKILLSMAN_DIR, 'skills');
-let PRESETS_DIR = path.join(SKILLSMAN_DIR, 'presets');
-let STATE_FILE = path.join(SKILLSMAN_DIR, 'state.json');
+let LIBRARY_DIR = path.join(getXdgDataHome(), 'skillsman', 'skills');
+let PRESETS_DIR = path.join(getXdgConfigHome(), 'skillsman', 'presets');
+let STATE_FILE = path.join(getXdgStateHome(), 'skillsman', 'state.json');
 
 /**
  * Configure test environment paths (used by unit and integration tests)
@@ -26,10 +59,11 @@ let STATE_FILE = path.join(SKILLSMAN_DIR, 'state.json');
 function setTestEnv(sandboxPath) {
   AGENTS_DIR = sandboxPath;
   SKILLS_DIR = path.join(AGENTS_DIR, 'skills');
-  SKILLSMAN_DIR = path.join(AGENTS_DIR, 'skillsman');
-  LIBRARY_DIR = path.join(SKILLSMAN_DIR, 'skills');
-  PRESETS_DIR = path.join(SKILLSMAN_DIR, 'presets');
-  STATE_FILE = path.join(SKILLSMAN_DIR, 'state.json');
+  
+  // Set sandboxed XDG folders under sandboxPath
+  LIBRARY_DIR = path.join(sandboxPath, 'data', 'skillsman', 'skills');
+  PRESETS_DIR = path.join(sandboxPath, 'config', 'skillsman', 'presets');
+  STATE_FILE = path.join(sandboxPath, 'state', 'skillsman', 'state.json');
 }
 
 /**
@@ -67,8 +101,9 @@ function loadState() {
  */
 function saveState(state) {
   try {
-    if (!fs.existsSync(SKILLSMAN_DIR)) {
-      fs.mkdirSync(SKILLSMAN_DIR, { recursive: true });
+    const stateDir = path.dirname(STATE_FILE);
+    if (!fs.existsSync(stateDir)) {
+      fs.mkdirSync(stateDir, { recursive: true });
     }
     fs.writeFileSync(STATE_FILE, JSON.stringify(state, null, 2), 'utf8');
   } catch (err) {
@@ -226,9 +261,12 @@ function resolveFinalSkills(state) {
 function init() {
   console.log('\x1b[36m%s\x1b[0m', '=== Initializing skillsman Environment ===');
 
-  // Create structure
-  console.log(`Checking target directories under: ${SKILLSMAN_DIR}`);
-  
+  console.log('Checking target directories:');
+  console.log(`  - Config (Presets): ${PRESETS_DIR}`);
+  console.log(`  - State (State File): ${STATE_FILE}`);
+  console.log(`  - Data (Library): ${LIBRARY_DIR}`);
+
+  // Gracefully generate folders in their respective XDG config, state, and data locations
   if (!fs.existsSync(LIBRARY_DIR)) {
     fs.mkdirSync(LIBRARY_DIR, { recursive: true });
     console.log(`\x1b[32m✔\x1b[0m Created: ${LIBRARY_DIR}`);
@@ -243,68 +281,20 @@ function init() {
     console.log(`\x1b[90mAlready exists:\x1b[0m ${PRESETS_DIR}`);
   }
 
-  // Create state.json
-  const defaultState = getDefaultState();
-  saveState(defaultState);
-  console.log(`\x1b[32m✔\x1b[0m Initialized state file: ${STATE_FILE}`);
-
-  // Safe migration
-  if (!fs.existsSync(SKILLS_DIR)) {
-    console.log(`Source skills folder does not exist: ${SKILLS_DIR}. Nothing to migrate.`);
-    return;
+  const stateFileDir = path.dirname(STATE_FILE);
+  if (!fs.existsSync(stateFileDir)) {
+    fs.mkdirSync(stateFileDir, { recursive: true });
   }
 
-  console.log(`\n\x1b[36mScanning existing skills in:\x1b[0m ${SKILLS_DIR}`);
-  const items = fs.readdirSync(SKILLS_DIR);
-  const migrated = [];
-
-  for (const item of items) {
-    const srcPath = path.join(SKILLS_DIR, item);
-    const destPath = path.join(LIBRARY_DIR, item);
-    const stat = fs.lstatSync(srcPath);
-
-    if (stat.isDirectory() && !stat.isSymbolicLink()) {
-      console.log(`Migrating physical skill: ${item}...`);
-      
-      try {
-        fs.cpSync(srcPath, destPath, { recursive: true });
-        
-        // Verify copy
-        if (fs.existsSync(destPath)) {
-          const srcCount = fs.readdirSync(srcPath).length;
-          const destCount = fs.readdirSync(destPath).length;
-          if (srcCount === destCount) {
-            migrated.push({ name: item, srcPath, destPath });
-            console.log(`  \x1b[32m✔\x1b[0m Verified: ${item}`);
-          } else {
-            throw new Error(`File count mismatch for ${item}: source has ${srcCount}, target has ${destCount}`);
-          }
-        } else {
-          throw new Error(`Target directory does not exist after copy: ${destPath}`);
-        }
-      } catch (err) {
-        console.error(`\x1b[31mError migrating skill "${item}":\x1b[0m`, err.message);
-        process.exit(1);
-      }
-    } else {
-      console.log(`\x1b[90mSkipped item: ${item} (not a physical directory)\x1b[0m`);
-    }
+  if (!fs.existsSync(STATE_FILE)) {
+    const defaultState = getDefaultState();
+    saveState(defaultState);
+    console.log(`\x1b[32m✔\x1b[0m Initialized state file: ${STATE_FILE}`);
+  } else {
+    console.log(`\x1b[90mAlready exists:\x1b[0m ${STATE_FILE}`);
   }
 
-  // Once all copies are verified, delete physical source folders
-  if (migrated.length > 0) {
-    console.log('\n\x1b[33mAll copies verified. Safely removing original source folders...\x1b[0m');
-    for (const skill of migrated) {
-      try {
-        fs.rmSync(skill.srcPath, { recursive: true, force: true });
-        console.log(`  \x1b[32m✔\x1b[0m Removed source: ${skill.srcPath}`);
-      } catch (err) {
-        console.warn(`\x1b[33mWarning: Failed to remove source folder ${skill.srcPath}:\x1b[0m`, err.message);
-      }
-    }
-  }
-
-  console.log(`\n\x1b[32m✔ Environment initialized successfully. Migrated ${migrated.length} skills.\x1b[0m`);
+  console.log(`\n\x1b[32m✔ Environment initialized successfully.\x1b[0m`);
 }
 
 /**
@@ -665,6 +655,9 @@ if (require.main === module) {
     saveState,
     loadSkillsFromPresetDirect,
     loadSkillsFromPreset,
-    getPaths: () => ({ AGENTS_DIR, SKILLS_DIR, SKILLSMAN_DIR, LIBRARY_DIR, PRESETS_DIR, STATE_FILE })
+    getXdgConfigHome,
+    getXdgStateHome,
+    getXdgDataHome,
+    getPaths: () => ({ AGENTS_DIR, SKILLS_DIR, LIBRARY_DIR, PRESETS_DIR, STATE_FILE })
   };
 }

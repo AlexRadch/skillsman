@@ -6,21 +6,33 @@ Welcome to the **skillsman** User Guide. This document provides a complete refer
 
 ## 📂 Directory Layout
 
-`skillsman` operates inside the user-level systemic `.agents` directory residing at `~/.agents/`. Understanding this structure is essential for manual edits or custom integrations.
+`skillsman` operates strictly conforming to the cross-platform **XDG Base Directory Specification**, separating user configuration, local machine state, and active linkages.
 
-```text
-~/.agents/
-├── skills/                     # Active Zone: Symbolic links/Junctions are projected here.
-│                               # AI coding agents read active skills directly from this folder.
-├── skillsman/
-│   ├── skills/                 # Source Library: Physical storage containing all your downloaded
-│   │                           # and developed skills (contains subfolders with SKILL.md files).
-│   ├── presets/                # Presets Folder: Markdown files containing YAML frontmatter 
-│   │                           # that define skill assemblies and recursive preset references.
-│   └── state.json              # State File: Automatically managed state tracking active, 
-│                               # background, and blacklisted presets.
-└── .skill-lock.json            # Main skill manager lock file (manages skill sources and hashes)
-```
+### 1. Active Projections (Target System Zone)
+
+* **Path**: `~/.agents/skills/`
+* **Purpose**: Symbolic links / Windows Directory Junctions are dynamically projected here. AI coding agents (such as Claude Code) read active skills directly from this folder.
+
+### 2. User Configuration (`XDG_CONFIG_HOME`)
+
+* **Path**: `skillsman/presets/`
+  * Linux/macOS: `~/.config/skillsman/presets/`
+  * Windows: `C:\Users\<user>\AppData\Roaming\skillsman\presets\`
+* **Purpose**: User-authored preset markdown files containing YAML frontmatter that define skill assemblies and recursive preset references.
+
+### 3. Local Machine State (`XDG_STATE_HOME`)
+
+* **Path**: `skillsman/state.json`
+  * Linux/macOS: `~/.local/state/skillsman/state.json`
+  * Windows: `C:\Users\<user>\AppData\Local\skillsman\state.json`
+* **Purpose**: Automatically managed state tracking active, always-loaded, and blacklisted presets.
+
+### 4. User Data (`XDG_DATA_HOME`)
+
+* **Path**: `skillsman/skills/`
+  * Linux/macOS: `~/.local/share/skillsman/skills/`
+  * Windows: `C:\Users\<user>\AppData\Local\skillsman\skills\`
+* **Purpose**: Physical source storage containing all your downloaded and developed skills (contains subfolders with `SKILL.md` files).
 
 ---
 
@@ -30,9 +42,7 @@ Welcome to the **skillsman** User Guide. This document provides a complete refer
 
 ### 1. `skillsman init`
 
-Initializes the workspace directory structure under `~/.agents/` and performs a safe physical migration of any existing physical skill folders from `~/.agents/skills/` to the source library at `~/.agents/skillsman/skills/`.
-
-* **Safety Protocol**: Copies files recursively, verifies file counts on both sides, and deletes original source folders only after a 100% successful copy verification.
+Initializes the respective XDG base directories for config, state, and data (presets, state.json, and source library folders).
 
 ### 2. `skillsman list` (alias: `ls`)
 

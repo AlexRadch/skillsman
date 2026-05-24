@@ -39,11 +39,12 @@ The core of `skillsman` is contained within a single main file: [**`index.js`**]
 
 ### Key Functions
 
+* `getXdgConfigHome()`, `getXdgStateHome()`, `getXdgDataHome()`: Pure path resolution helper functions that gracefully resolve standard XDG Base Directory specification paths on Linux, macOS, and Windows with environment variable overrides and fallback mechanisms.
 * `resolveFinalSkills(state)`: Implements the DFS (Depth-First Search) preset tree traversal, processes the `always` and `active` candidates, and filters out the non-recursive `never` blacklisted skills.
 * `syncState()`: Core synchronization routine. Scans the current symbolic links in `~/.agents/skills/`, unlinks obsolete ones, and creates missing symbolic links (using standard Unix symlinks or Windows Directory Junctions) to point to the source library.
-* `init()`: Recreates folder structures and migrates folders safely using verification steps (`fs.cpSync` + size check + `fs.rmSync`).
+* `init()`: Gracefully resolves and initializes the respective target XDG directories (config, state, and data).
 * `parseFrontmatter(content)`: Integrates `gray-matter` to parse markdown frontmatter safely.
-* `setTestEnv(sandboxPath)`: Overrides standard home directory directories (e.g. `~/.agents`) to point to a sandbox directory during testing.
+* `setTestEnv(sandboxPath)`: Overrides standard directory locations to point to isolated, sandboxed XDG folders (`sandboxPath/config/...`, `sandboxPath/state/...`, `sandboxPath/data/...`) and active projections (`sandboxPath/skills`) during testing.
 
 ### Programmatic Exports
 
@@ -61,6 +62,7 @@ When imported as a module (e.g., `const skillsman = require('./index')`), the sc
 tests/
 ├── unit/
 │   ├── frontmatter.test.js  # Unit tests for the gray-matter parser
+│   ├── paths.test.js        # Unit tests for the pure XDG path resolution helpers
 │   └── resolver.test.js     # Unit tests for recursive DFS resolving and cycle safety
 └── integration/
     └── cli.test.js          # Subprocess CLI integration and command routing tests
@@ -68,7 +70,7 @@ tests/
 
 ### Sandbox Protection
 
-All tests are completely safe and isolated. They use `setTestEnv` to route all folder structures into local temporary sandbox directories:
+All tests are completely safe and isolated. They use `setTestEnv` to route all folder structures into isolated configuration, state, and data folders under local temporary sandbox directories:
 
 * `tests/sandbox-unit/`
 * `tests/sandbox-integration/`

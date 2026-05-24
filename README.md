@@ -14,7 +14,7 @@ By utilizing smart symbolic links (Unix symlinks / Windows Directory Junctions) 
 
 ## 🗺️ Architecture and Concept
 
-`skillsman` acts as a smart projection layer between your physical skills store and active AI agents (like Claude Code, Cursor, Cline, Copilot, etc.).
+`skillsman` acts as a smart projection layer between your physical skills store and active AI agents (like Claude Code, Cursor, Cline, Copilot, etc.) conforming strictly to the cross-platform **XDG Base Directory Specification**:
 
 ```mermaid
 graph TD
@@ -23,21 +23,26 @@ graph TD
 
     AGENTS[📂 ~/.agents]:::folder
     SKILLS[📂 ~/.agents/skills]:::folder
-    SM[📂 ~/.agents/skillsman]:::folder
-    LIB[📂 ~/.agents/skillsman/skills]:::folder
-    PRESETS[📂 ~/.agents/skillsman/presets]:::folder
-    STATE[📄 ~/.agents/skillsman/state.json]:::file
+    
+    CONF[📂 Config: XDG_CONFIG_HOME/skillsman/presets]:::folder
+    DATA[📂 Data: XDG_DATA_HOME/skillsman/skills]:::folder
+    STATE[📄 State: XDG_STATE_HOME/skillsman/state.json]:::file
 
     AGENTS --> SKILLS
-    AGENTS --> SM
-    SM --> LIB
-    SM --> PRESETS
-    SM --> STATE
-
+    
     LINK[🔗 AI Agent Junction Links]
     SKILLS -.-> LINK
-    LINK -.-> |Projection| LIB
+    LINK -.-> |Projection| DATA
 ```
+
+### 📍 XDG Paths Resolution Table
+
+| Directory Type | Linux / macOS Default | Windows Default | Environment Variable |
+| :--- | :--- | :--- | :--- |
+| **Presets (Config)** | `~/.config/skillsman/presets/` | `AppData\Roaming\skillsman\presets\` | `XDG_CONFIG_HOME` |
+| **Active Preset State** | `~/.local/state/skillsman/state.json` | `AppData\Local\skillsman\state.json` | `XDG_STATE_HOME` |
+| **Skills Library (Data)** | `~/.local/share/skillsman/skills/` | `AppData\Local\skillsman\skills\` | `XDG_DATA_HOME` |
+| **Active Projections** | `~/.agents/skills/` | `~/.agents/skills/` | *Fixed Zone* |
 
 ---
 
@@ -65,7 +70,7 @@ npm link
 
 ### 2. Initialization
 
-Run the initialization routine. It creates standard workspaces inside `~/.agents/` and performs a safe physical migration of any pre-existing skills into the source library:
+Run the initialization routine to create the standard XDG base directories:
 
 ```bash
 skillsman init

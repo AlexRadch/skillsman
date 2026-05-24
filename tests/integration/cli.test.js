@@ -15,14 +15,6 @@ describe('CLI Integration Tests', () => {
     }
     setTestEnv(sandboxPath);
     paths = getPaths();
-    
-    // Create a dummy physical skills folder representing the live folder before migration
-    fs.mkdirSync(paths.SKILLS_DIR, { recursive: true });
-    fs.mkdirSync(path.join(paths.SKILLS_DIR, 'test-skill-1'), { recursive: true });
-    fs.writeFileSync(path.join(paths.SKILLS_DIR, 'test-skill-1', 'instruction.txt'), 'content', 'utf8');
-
-    fs.mkdirSync(path.join(paths.SKILLS_DIR, 'test-skill-2'), { recursive: true });
-    fs.writeFileSync(path.join(paths.SKILLS_DIR, 'test-skill-2', 'instruction.txt'), 'content', 'utf8');
   });
 
   after(() => {
@@ -31,7 +23,7 @@ describe('CLI Integration Tests', () => {
     } catch (e) {}
   });
 
-  it('1. should initialize the environment and migrate existing physical skills safely', () => {
+  it('1. should initialize the environment folders and state file successfully', () => {
     init();
 
     // Verify target structure
@@ -39,12 +31,12 @@ describe('CLI Integration Tests', () => {
     assert.ok(fs.existsSync(paths.PRESETS_DIR));
     assert.ok(fs.existsSync(paths.STATE_FILE));
 
-    // Verify migration
-    assert.ok(fs.existsSync(path.join(paths.LIBRARY_DIR, 'test-skill-1')));
-    assert.ok(fs.existsSync(path.join(paths.LIBRARY_DIR, 'test-skill-2')));
-    // Verify source was cleared
-    assert.ok(!fs.existsSync(path.join(paths.SKILLS_DIR, 'test-skill-1')));
-    assert.ok(!fs.existsSync(path.join(paths.SKILLS_DIR, 'test-skill-2')));
+    // Populate the sandboxed source library directly for subsequent tests
+    fs.mkdirSync(path.join(paths.LIBRARY_DIR, 'test-skill-1'), { recursive: true });
+    fs.writeFileSync(path.join(paths.LIBRARY_DIR, 'test-skill-1', 'instruction.txt'), 'content', 'utf8');
+
+    fs.mkdirSync(path.join(paths.LIBRARY_DIR, 'test-skill-2'), { recursive: true });
+    fs.writeFileSync(path.join(paths.LIBRARY_DIR, 'test-skill-2', 'instruction.txt'), 'content', 'utf8');
   });
 
   it('2. should apply presets in Absolute Mode, merging "always" and excluding blacklisted skills', () => {
