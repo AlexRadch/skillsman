@@ -21,5 +21,9 @@ This is the initial development preview release of `skillsman` — a modern, zer
 - **Declarative CLI**: Migrated parameters parsing to the industry-standard `commander` library, providing automated validation, aliases, and clean Spec help output.
 - **Modern Test Suite**: Created a fully automated, sandbox-isolated test suite leveraging **Node.js Native Test Runner** (`node:test` + `node:assert`) covering BDD-style unit, integration, and CLI subprocess edge cases.
 - **Single Source of Truth Metadata**: Configured the CLI to dynamically bind the program name, version, and description directly to `package.json` configurations.
-- **CI/CD Automation**: Integrated a GitHub Actions workflow to automate package publication to the `npm` registry upon publishing a new GitHub release tag.
+- **CI/CD Automation**: Integrated a unified, multi-OS GitHub Actions test suite and a reusable publish workflow to automatically test and deploy to the `npm` registry upon release.
+- **Auto-Release Pipeline**: Created a tag-triggered GitHub workflow and custom Node.js script to extract release notes and automatically generate a formal GitHub Release on push.
+- **Lifecycle Version Hook**: Implemented automated versioning and changelog dating via the native `npm version` hook.
+- **NPM Package Polish**: Configured `package.json` with a robust files whitelist and an extensive, alphabetically-sorted set of 55 discoverability keywords covering the entire AI agent IDE ecosystem.
+- **Clean Git Integration**: Configured automatic ignoring of temporary test sandboxes in `.gitignore` to prevent workspace clutter during test execution.
 - **Modular Documentation**: Refactored the codebase documentation layout into a clean high-level `README.md`, an exhaustive `docs/user_guide.md`, and a targeted `docs/developer_guide.md`.
