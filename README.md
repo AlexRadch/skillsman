@@ -2,7 +2,7 @@
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
 [![Dependency Status](https://img.shields.io/badge/dependencies-commander--gray--matter-blue.svg)](package.json)
-[![Tests Status](https://img.shields.io/badge/tests-passing-brightgreen.svg)](docs/developer_guide.md)
+[![Build Status](https://github.com/AlexRadch/skillsman/actions/workflows/test.yml/badge.svg)](https://github.com/AlexRadch/skillsman/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-beta--preview-orange.svg)](https://github.com/AlexRadch/skillsman)
 
