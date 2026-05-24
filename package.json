@@ -1,0 +1,21 @@
+{
+  "name": "skillsman",
+  "version": "0.1.0",
+  "author": "Alexander Radchenko <radchenkosasha@gmail.com>",
+  "description": "CLI manager for AI agent skills presets",
+  "main": "./index.js",
+  "bin": {
+    "skillsman": "./index.js"
+  },
+  "type": "commonjs",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "commander": "^14.0.3",
+    "gray-matter": "^4.0.3"
+  }
+}
