@@ -230,4 +230,92 @@ skills:
 
     assert.strictEqual(output.includes('unrelated-physical-folder'), false);
   });
+
+  it('13. should handle and resolve target-mismatched or stale symlinks by recreating them pointing to the correct library path', () => {
+    const isWindows = process.platform === 'win32';
+
+    // 1. Write custom preset and populate library skills
+    fs.mkdirSync(path.join(paths.LIBRARY_DIR, 'mismatched-skill'), { recursive: true });
+    fs.writeFileSync(path.join(paths.LIBRARY_DIR, 'mismatched-skill', 'instruction.txt'), 'correct-content', 'utf8');
+
+    fs.mkdirSync(path.join(paths.LIBRARY_DIR, 'cross-skill-1'), { recursive: true });
+    fs.writeFileSync(path.join(paths.LIBRARY_DIR, 'cross-skill-1', 'instruction.txt'), 'content-1', 'utf8');
+
+    fs.mkdirSync(path.join(paths.LIBRARY_DIR, 'cross-skill-2'), { recursive: true });
+    fs.writeFileSync(path.join(paths.LIBRARY_DIR, 'cross-skill-2', 'instruction.txt'), 'content-2', 'utf8');
+
+    fs.mkdirSync(path.join(paths.LIBRARY_DIR, 'self-cyclic-skill'), { recursive: true });
+    fs.writeFileSync(path.join(paths.LIBRARY_DIR, 'self-cyclic-skill', 'instruction.txt'), 'content-self', 'utf8');
+
+    fs.writeFileSync(path.join(paths.PRESETS_DIR, 'mismatchPreset.md'), `---
+name: mismatchPreset
+skills:
+  - mismatched-skill
+  - cross-skill-1
+  - cross-skill-2
+  - self-cyclic-skill
+---`, 'utf8');
+
+    if (!fs.existsSync(paths.SKILLS_DIR)) {
+      fs.mkdirSync(paths.SKILLS_DIR, { recursive: true });
+    }
+
+    // 2. Pre-create stale symlink 1: points to a wrong destination folder
+    const wrongDestPath = path.join(sandboxPath, 'wrong-dest-folder');
+    fs.mkdirSync(wrongDestPath, { recursive: true });
+    
+    const staleLinkPath = path.join(paths.SKILLS_DIR, 'mismatched-skill');
+    fs.symlinkSync(wrongDestPath, staleLinkPath, isWindows ? 'junction' : 'dir');
+
+    // 3. Pre-create cross-linked symlinks:
+    // cross-skill-1 symlink points to cross-skill-2 in library
+    // cross-skill-2 symlink points to cross-skill-1 in library
+    const crossLinkPath1 = path.join(paths.SKILLS_DIR, 'cross-skill-1');
+    const crossLinkPath2 = path.join(paths.SKILLS_DIR, 'cross-skill-2');
+    fs.symlinkSync(path.join(paths.LIBRARY_DIR, 'cross-skill-2'), crossLinkPath1, isWindows ? 'junction' : 'dir');
+    fs.symlinkSync(path.join(paths.LIBRARY_DIR, 'cross-skill-1'), crossLinkPath2, isWindows ? 'junction' : 'dir');
+
+    // 4. Pre-create a self-pointing cyclic symlink:
+    // self-cyclic-skill symlink points to itself!
+    const selfCyclicPath = path.join(paths.SKILLS_DIR, 'self-cyclic-skill');
+    fs.symlinkSync(selfCyclicPath, selfCyclicPath, isWindows ? 'junction' : 'dir');
+
+    // Verify initial targets are incorrect
+    assert.strictEqual(path.resolve(paths.SKILLS_DIR, fs.readlinkSync(staleLinkPath)), path.resolve(wrongDestPath));
+    assert.strictEqual(path.resolve(paths.SKILLS_DIR, fs.readlinkSync(crossLinkPath1)), path.resolve(path.join(paths.LIBRARY_DIR, 'cross-skill-2')));
+    assert.strictEqual(path.resolve(paths.SKILLS_DIR, fs.readlinkSync(crossLinkPath2)), path.resolve(path.join(paths.LIBRARY_DIR, 'cross-skill-1')));
+    assert.strictEqual(path.resolve(paths.SKILLS_DIR, fs.readlinkSync(selfCyclicPath)), path.resolve(selfCyclicPath));
+
+    // 5. Set the preset as active and sync state
+    let state = loadState();
+    state.activePresets = ['mismatchPreset'];
+    saveState(state);
+
+    syncState();
+
+    // 6. Verify that ALL stale, cross-linked, and cyclic links were safely resolved and updated
+    assert.ok(fs.existsSync(staleLinkPath));
+    assert.strictEqual(
+      path.resolve(paths.SKILLS_DIR, fs.readlinkSync(staleLinkPath)),
+      path.resolve(path.join(paths.LIBRARY_DIR, 'mismatched-skill'))
+    );
+
+    assert.ok(fs.existsSync(crossLinkPath1));
+    assert.strictEqual(
+      path.resolve(paths.SKILLS_DIR, fs.readlinkSync(crossLinkPath1)),
+      path.resolve(path.join(paths.LIBRARY_DIR, 'cross-skill-1'))
+    );
+
+    assert.ok(fs.existsSync(crossLinkPath2));
+    assert.strictEqual(
+      path.resolve(paths.SKILLS_DIR, fs.readlinkSync(crossLinkPath2)),
+      path.resolve(path.join(paths.LIBRARY_DIR, 'cross-skill-2'))
+    );
+
+    assert.ok(fs.existsSync(selfCyclicPath));
+    assert.strictEqual(
+      path.resolve(paths.SKILLS_DIR, fs.readlinkSync(selfCyclicPath)),
+      path.resolve(path.join(paths.LIBRARY_DIR, 'self-cyclic-skill'))
+    );
+  });
 });
