@@ -5,7 +5,12 @@ on:
     types: [published]
 
 jobs:
+  test:
+    uses: ./.github/workflows/test.yml # Reuses the existing test workflow
+
   publish:
+    name: Publish to NPM Registry
+    needs: test # Runs ONLY if the reused 'test' workflow completes successfully
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -14,13 +19,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install Dependencies
-        run: npm install
+        run: npm ci
 
       - name: Publish to npm
         run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
