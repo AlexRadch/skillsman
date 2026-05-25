@@ -1,0 +1,129 @@
+name: Release and Publish
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*.[0-9]*.[0-9]*'      # Для стандартных: v1.0.0, v0.1.2
+      - 'v[0-9]*.[0-9]*.[0-9]*-*'    # Для пре-релизов: v1.0.0-beta, v0.1.2-alpha.1
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      skip-tests:
+        description: 'Skip running tests before publishing'
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  test:
+    name: Run Tests
+    if: ${{ github.event_name == 'push' || github.event_name == 'release' || !inputs.skip-tests }}
+    uses: ./.github/workflows/test.yml
+
+  check-status:
+    name: Check Status
+    runs-on: ubuntu-latest
+    outputs:
+      release-needed: ${{ steps.check.outputs.release-needed }}
+      publish-needed: ${{ steps.check.outputs.publish-needed }}
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Analyze Repository and NPM Registry
+        id: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # 1. Получаем версию из package.json
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Detected version in package.json: $VERSION"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+          # 2. Проверяем, существует ли уже релиз на GitHub
+          if [ "${{ github.event_name }}" = "release" ]; then
+            echo "Triggered by release publication event. Skipping release creation check."
+            echo "release-needed=false" >> $GITHUB_OUTPUT
+          else
+            if gh release view "v$VERSION" >/dev/null 2>&1; then
+              echo "GitHub release v$VERSION already exists."
+              echo "release-needed=false" >> $GITHUB_OUTPUT
+            else
+              echo "GitHub release v$VERSION does not exist yet."
+              echo "release-needed=true" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+          # 3. Проверяем, опубликован ли уже этот пакет на NPM
+          if curl -s -f "https://registry.npmjs.org/skillsman/$VERSION" >/dev/null 2>&1; then
+            echo "NPM version $VERSION already exists in registry."
+            echo "publish-needed=false" >> $GITHUB_OUTPUT
+          else
+            echo "NPM version $VERSION does not exist in registry yet."
+            echo "publish-needed=true" >> $GITHUB_OUTPUT
+          fi
+
+  create-release:
+    name: Auto-Create GitHub Release
+    needs: [test, check-status]
+    if: |
+      always() &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (needs.check-status.result == 'success') &&
+      (needs.check-status.outputs.release-needed == 'true')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Extract Release Notes
+        run: node scripts/extract-changelog.js "${{ needs.check-status.outputs.version }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.check-status.outputs.version }}
+          name: Release v${{ needs.check-status.outputs.version }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Publish to NPM Registry
+    needs: [test, check-status, create-release]
+    if: |
+      always() &&
+      (needs.test.result == 'success' || needs.test.result == 'skipped') &&
+      (needs.check-status.result == 'success') &&
+      (needs.check-status.outputs.publish-needed == 'true') &&
+      (needs.create-release.result == 'success' || needs.create-release.result == 'skipped')
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required for Trusted Publishing (OIDC)
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Publish to npm
+        run: npm publish --provenance
