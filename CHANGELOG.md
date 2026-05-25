@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Smart Deployment Guard**: Configured real-time checks to query GitHub CLI and the public NPM registry to dynamically skip redundant releases or publishes.
 - **Resilient Changelog Extractor**: Enhanced `extract-changelog.js` to gracefully fall back to default release notes if a version's changelog section is empty.
 - **Workflow Cleanups**: Removed obsolete branch triggers (`master`) from the test execution runner (`test.yml`).
+- **Environment Upgrades**: Upgraded the release workflow runner to Node.js v22 and dynamically updated the npm CLI to the latest version to ensure full compatibility with the modern OIDC Trusted Publishing protocols.
 
 ## [0.1.1] - 2026-05-24
 
