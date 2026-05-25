@@ -1,4 +1,4 @@
-name: Create Release
+name: Create Release and Publish to NPM
 
 on:
   push:
@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # Allows GITHUB_TOKEN to create and publish releases
+    outputs:
+      version: ${{ steps.get_version.outputs.version }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -46,3 +48,11 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    needs: create-release # Runs ONLY if the release was successfully created
+    uses: ./.github/workflows/publish.yml # Calls the unified publish workflow!
+    with:
+      skip-tests: true # Bypasses the second run of tests because they just ran successfully!
+    secrets: inherit # Inherit secrets like NPM_TOKEN
+

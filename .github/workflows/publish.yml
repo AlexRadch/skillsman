@@ -3,14 +3,24 @@ name: Publish to npm
 on:
   release:
     types: [published]
+  workflow_dispatch: # Allows manual trigger from the GitHub Actions UI
+  workflow_call: # Allows this workflow to be called from other workflows
+    inputs:
+      skip-tests:
+        description: 'Skip running tests before publishing'
+        type: boolean
+        required: false
+        default: false
 
 jobs:
   test:
+    if: ${{ !inputs.skip-tests }}
     uses: ./.github/workflows/test.yml # Reuses the existing test workflow
 
   publish:
     name: Publish to NPM Registry
-    needs: test # Runs ONLY if the reused 'test' workflow completes successfully
+    if: ${{ always() && (needs.test.result == 'success' || needs.test.result == 'skipped') }}
+    needs: test # Runs ONLY if tests passed OR were explicitly skipped
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
