@@ -11,12 +11,12 @@ To configure `skillsman` for local development:
 1. **Clone the repository**:
 
     ```bash
-    git clone https://github.com/youruser/skillsman.git
+    git clone https://github.com/AlexRadch/skillsman.git
     cd skillsman
     ```
 
 2. **Install dependencies**:
-    `skillsman` relies on the robust `gray-matter` package for frontmatter parsing and `commander` for command-line options parsing:
+    `skillsman` relies on `gray-matter` for frontmatter parsing, `commander` for command-line parsing, and the official `skills` package as a production dependency for seamless delegated execution:
 
     ```bash
     npm install
@@ -29,26 +29,76 @@ To configure `skillsman` for local development:
     npm link
     ```
 
-    This registers the `skillsman` executable command in your system shell pointing directly to your local development codebase folder.
+    This registers the `skillsman`, `skills`, and `add-skill` executable commands in your system shell, pointing directly to your local development codebase.
 
 ---
 
 ## 🏗️ Codebase Architecture
 
-The core of `skillsman` is contained within a single main file: [**`index.js`**](file:///c:/AProj/skillsman/index.js).
+The core of `skillsman` is structured into two focused files:
 
-### Key Functions
+### 1. [`cli.js`](../cli.js) (CLI Entry Point)
 
-* `getXdgConfigHome()`, `getXdgStateHome()`, `getXdgDataHome()`: Pure path resolution helper functions that gracefully resolve standard XDG Base Directory specification paths on Linux, macOS, and Windows with environment variable overrides and fallback mechanisms.
-* `resolveFinalSkills(state)`: Implements the DFS (Depth-First Search) preset tree traversal, processes the `always` and `active` candidates, and filters out the non-recursive `never` blacklisted skills.
-* `syncState()`: Core synchronization routine. Scans the current symbolic links in `~/.agents/skills/`, unlinks obsolete ones, and creates missing symbolic links (using standard Unix symlinks or Windows Directory Junctions) to point to the source library.
-* `init()`: Gracefully resolves and initializes the respective target XDG directories (config, state, and data).
-* `parseFrontmatter(content)`: Integrates `gray-matter` to parse markdown frontmatter safely.
-* `setTestEnv(sandboxPath)`: Overrides standard directory locations to point to isolated, sandboxed XDG folders (`sandboxPath/config/...`, `sandboxPath/state/...`, `sandboxPath/data/...`) and active projections (`sandboxPath/skills`) during testing.
+Handles the command-line setup, Commander command registration, argument passing, and global shim management:
 
-### Programmatic Exports
+* **Self-Healing Link check (`ensureSkillsLink`)**: A 1.5ms check executed on startup to ensure global shims point to `skillsman`'s entry point.
+* **CLI Routing**: Resolves, validates, and forwards arguments cleanly to the programmatic API.
 
-When imported as a module (e.g., `const skillsman = require('./index')`), the script exports all utility functions and a `getPaths()` method. This enables complete programmatic testing of the core state, parsers, and resolvers without starting shell commands.
+### 2. [`index.js`](../index.js) (Programmatic API)
+
+The core logical module of the manager, containing:
+
+* **XDG Path Resolution**: `getXdgConfigHome()`, `getXdgStateHome()`, `getXdgDataHome()` resolve standard paths on Linux, macOS, and Windows.
+* **DFS Resolver**: `resolveFinalSkills(state)` implements recursive Depth-First Search tree traversal to expand nested presets and filter out blacklisted ones.
+* **Projection Linker**: `syncState()` synchronizes symbolic links / Windows Directory Junctions inside `~/.agents/skills/` to match `state.json`.
+* **Ingestion Engine**: `collect()` scans, migrates physical folders, generates markdown presets on-the-fly, and links folders back.
+* **Subprocess Delegation**: `delegateToSkillsCLI(command, args)` resolves the physical file path of the nested `skills` package dependency and directly executes it via Node (`spawnSync`), setting sandboxed environment variables for environment redirection.
+
+---
+
+## 🛡️ Static Type Checking (JSDoc + `// @ts-check`)
+
+`skillsman` achieves **100% type safety and IDE autocomplete** with **zero build-step overhead** by leveraging JSDoc comments and the `// @ts-check` directive.
+
+* **No Compiler Needed**: Pure JavaScript files are verified by the IDE's built-in TypeScript engine.
+* **Instant Startups**: Eliminates slower transpile times (e.g. `ts-node`), maintaining a cold start time under **5ms**.
+* **JSDoc Specifications**: All functions are annotated with explicit parameter and return types:
+
+  ```javascript
+  /**
+   * Resolves the final set of skills based on the state.
+   * @param {{ activePresets: string[], alwaysPresets: string[], neverPresets: string[] }} state - The state object
+   * @returns {{ finalSkills: Set<string>, forbiddenSkills: Set<string> }} Resolved final and forbidden sets
+   */
+  ```
+
+---
+
+## ⚙️ Coding Conventions
+
+### Subprocess Delegation without `npx`
+
+`skillsman` never invokes `npx skills` at runtime. Instead, the physical path of the bundled `skills` package is resolved via `require.resolve('skills/package.json')` and executed directly by Node:
+
+```javascript
+const skillsPkgPath = require.resolve('skills/package.json');
+const skillsBinPath = path.join(path.dirname(skillsPkgPath), 'path/to/bin');
+spawnSync(process.execPath, [skillsBinPath, ...args], { stdio: 'inherit' });
+```
+
+This avoids shell and network overhead entirely. The `skills` package is kept as a **production dependency** in `package.json` to guarantee resolution.
+
+### Safe Error Catching
+
+With `// @ts-check` enabled, `catch (err)` variables are typed as `unknown`. Never access `.message` directly — always guard with an `instanceof` check:
+
+```javascript
+try {
+  // ...
+} catch (err) {
+  console.error('Error:', err instanceof Error ? err.message : String(err));
+}
+```
 
 ---
 
@@ -62,20 +112,21 @@ When imported as a module (e.g., `const skillsman = require('./index')`), the sc
 tests/
 ├── unit/
 │   ├── frontmatter.test.js  # Unit tests for the gray-matter parser
-│   ├── paths.test.js        # Unit tests for the pure XDG path resolution helpers
+│   ├── paths.test.js        # Unit tests for the XDG path resolution helpers
 │   └── resolver.test.js     # Unit tests for recursive DFS resolving and cycle safety
 └── integration/
-    └── cli.test.js          # Subprocess CLI integration and command routing tests
+    ├── cli.test.js          # Subprocess CLI integration and command routing tests
+    └── cli.skills.test.js   # Isolated delegated skills commands integration tests
 ```
 
 ### Sandbox Protection
 
-All tests are completely safe and isolated. They use `setTestEnv` to route all folder structures into isolated configuration, state, and data folders under local temporary sandbox directories:
+All tests are completely safe and isolated. They use `setTestEnv` to route all folder structures into local temporary sandbox directories:
 
 * `tests/sandbox-unit/`
 * `tests/sandbox-integration/`
 
-These sandboxes are created on startup (using `before()` hooks) and strictly destroyed upon completion (using `after()` hooks), leaving **zero impact** on your live `~/.agents` workspace folder!
+These sandboxes are strictly created on startup and destroyed upon completion, leaving **zero impact** on your live profile.
 
 ### Running the Test Suite
 

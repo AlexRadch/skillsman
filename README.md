@@ -1,20 +1,20 @@
 # 🛠️ skillsman
 
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-green.svg)](https://nodejs.org/)
-[![Dependency Status](https://img.shields.io/badge/dependencies-commander--gray--matter-blue.svg)](package.json)
+[![Dependency Status](https://img.shields.io/badge/dependencies-commander%20%7C%20gray--matter%20%7C%20skills-blue.svg)](package.json)
 [![Build Status](https://github.com/AlexRadch/skillsman/actions/workflows/test.yml/badge.svg)](https://github.com/AlexRadch/skillsman/actions/workflows/test.yml)
 [![License](https://img.shields.io/badge/license-MIT-purple.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-beta--preview-orange.svg)](https://github.com/AlexRadch/skillsman)
+[![Status](https://img.shields.io/badge/status-active-orange.svg)](https://github.com/AlexRadch/skillsman)
 
 `skillsman` is a lightweight, high-performance Node.js CLI utility designed to manage, structure, and dynamically swap presets (assemblies) of portable **AI Agent Skills** conforming to the Anthropic Agent Skills specification.
 
-By utilizing smart symbolic links (Unix symlinks / Windows Directory Junctions) to project active files into `~/.agents/skills/` on-the-fly, `skillsman` eliminates folder cloning chaos and offers cycle-safe recursive references, conflict resolution, and global blacklisting out-of-the-box.
+By acting as a **Unified CLI wrapper** and drop-in enhancement for the official `skills` tool, `skillsman` lets you use the standard `skills` commands while supercharging them with native preset management, directory isolation, and zero-conflict link management.
 
 ---
 
 ## 🗺️ Architecture and Concept
 
-`skillsman` acts as a smart projection layer between your physical skills store and active AI agents (like Claude Code, Cursor, Cline, Copilot, etc.) conforming strictly to the cross-platform **XDG Base Directory Specification**:
+`skillsman` acts as a smart, zero-conflict projection layer between your physical skills store and active AI agents (like Claude Code, Cursor, Cline, Copilot, etc.), strictly conforming to the cross-platform **XDG Base Directory Specification**:
 
 ```mermaid
 graph TD
@@ -32,7 +32,7 @@ graph TD
     
     LINK[🔗 AI Agent Junction Links]
     SKILLS -.-> LINK
-    LINK -.-> |Projection| DATA
+    LINK -.-> |Dynamic Projection| DATA
 ```
 
 ### 📍 XDG Paths Resolution Table
@@ -46,12 +46,22 @@ graph TD
 
 ---
 
+## 💎 Key Features
+
+* 🚀 **10x Faster Execution**: Delegated commands run directly through Node.js on the compiled dependency bundle, bypassing `npx` and network/shell overhead entirely.
+* 📦 **Automatic Skill Ingestion**: Scanning and migrating physical skill folders into the isolated library on-the-fly, generating clean presets automatically.
+* 🔄 **Cycle-Safe DFS Traversal**: Resolving nested preset dependencies recursively using a cycle-safe Depth-First Search algorithm.
+* 🤝 **Conflict Resolution**: Preventing breaking linkages when multiple active presets share identical skill names.
+* 🚫 **Global Blacklist Priority**: Applying the designated `never.md` preset as a final filter block to prevent forbidden skills from projecting.
+
+---
+
 ## 📚 Documentation Directory
 
-To keep documentation clean and readable, technical details have been separated into dedicated guides:
+Technical details and developer instructions have been separated into dedicated guides:
 
-* 📘 [**User Guide** (docs/user_guide.md)](docs/user_guide.md) — Detailed explanation of folder structures, CLI command reference syntax, DFS recursive resolution, conflict overrides, and how `never.md` blacklisting priority is applied.
-* 💻 [**Developer Guide** (docs/developer_guide.md)](docs/developer_guide.md) — Local repository setup, CommonJS programmatic APIs, codebase map (`index.js`), and built-in **Node.js Native Test Runner** (`node:test`) guides.
+* 📘 [**User Guide** (docs/user_guide.md)](docs/user_guide.md) — Directory layout, CLI command reference syntax, DFS resolver, conflict overrides, and how `never.md` blacklisting priority is applied.
+* 💻 [**Developer Guide** (docs/developer_guide.md)](docs/developer_guide.md) — Local development, production dependencies, modular programmatic API (`index.js`), test architecture, and built-in **Node.js Native Test Runner** (`node:test`) details.
 
 ---
 
@@ -59,29 +69,30 @@ To keep documentation clean and readable, technical details have been separated 
 
 ### 1. Installation
 
-Clone this repository and link it globally so it's available system-wide:
+Install `skillsman` globally from NPM. This registers both global `skillsman` and `skills` executables on your system:
 
 ```bash
-git clone https://github.com/youruser/skillsman.git
-cd skillsman
-npm install
-npm link
+npm install -g skillsman
 ```
 
-### 2. Initialization
+If you ever install the official CLI and it overwrites the commands, simply run `npm install -g skillsman` to route them back through `skillsman` safely.
 
-Run the initialization routine to create the standard XDG base directories:
+### 2. Ingest Existing Skills
+
+Scan and migrate physical skill folders from your active agent directory (`~/.agents/skills/`) to your isolated local library:
 
 ```bash
-skillsman init
+skillsman collect
 ```
+
+This automatically generates a matching preset file under your config folder for every migrated skill.
 
 ### 3. List Available Presets
 
-List all pre-built assemblies with their description and unique skill counts:
+List all pre-built assemblies with their descriptions and unique resolved skill counts:
 
 ```bash
-skillsman list
+skillsman presets
 ```
 
 ### 4. Activate Presets

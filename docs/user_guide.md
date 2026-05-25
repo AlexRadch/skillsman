@@ -38,19 +38,17 @@ Welcome to the **skillsman** User Guide. This document provides a complete refer
 
 ## 🎮 CLI Command Reference
 
-`skillsman` features a powerful, standard CLI based on the modern `commander` library.
+`skillsman` features a powerful, standard CLI based on the modern `commander` library. It maps the global executables `skillsman` and `skills` to `cli.js`, giving you access to both native preset management and delegated original commands.
 
-### 1. `skillsman init`
+### 1. Native Preset Commands
 
-Initializes the respective XDG base directories for config, state, and data (presets, state.json, and source library folders).
+#### `skillsman presets` (alias: `ps`)
 
-### 2. `skillsman list` (alias: `ls`)
+Scans the `presets/` folder and lists all available assemblies with their descriptions and unique resolved skill counts (automatically expanding nested dependencies recursively).
 
-Scans the `presets/` folder and lists all available assemblies with their description and unique skill count (which automatically resolves recursive dependencies).
+* **Visual Indicators**: Highlight colors are applied for standard configurations: the auto-loaded preset `always` in yellow and the blacklist preset `never` in red.
 
-* **Visual Indicators**: Automatically highlights the background auto-loaded preset `always` in yellow and the blacklist preset `never` in red.
-
-### 3. `skillsman status`
+#### `skillsman status`
 
 Outputs the current status of your presets and symlinks:
 
@@ -58,22 +56,44 @@ Outputs the current status of your presets and symlinks:
 * Lists active symbolic links in `skills/` pointing to their physical paths.
 * Triggers warnings if a physical directory is found inside `skills/` instead of a symlink.
 
-### 4. `skillsman use [presets...]` (Absolute & Sync Mode)
+#### `skillsman collect`
 
-* **Absolute Mode**: Cleans the active folder of previous links and activates only the specified presets (e.g., `skillsman use dev planning`).
-* **State Sync Mode**: Calling `skillsman use` with **no arguments** forces a complete synchronization of active links to match the exact content of `state.json` and preset files. This is extremely useful if you manually edit preset files or modify `state.json` via a text editor.
+Scans the active directory `~/.agents/skills/` for physical skill folders, migrates them to the local isolated library, automatically generates a corresponding preset file, and replaces the folder with a symbolic link.
 
-### 5. `skillsman activate <presets...>` (Incremental Add)
+> [!NOTE]
+> This is a zero-conflict setup and ingestion command. It automatically extracts `name` and `description` from the skill's `SKILL.md` using the frontmatter parser to populate the generated preset.
+
+#### `skillsman use [presets...]` (Absolute & Sync Mode)
+
+* **Absolute Mode**: Cleans the active folder of previous links and activates only the specified presets (e.g., `skills use dev planning`).
+* **State Sync Mode**: Calling `skills use` with **no arguments** forces a complete synchronization of active links to match the exact content of `state.json` and preset files. This is extremely useful if you manually edit preset files or modify `state.json` via a text editor.
+
+#### `skillsman activate <presets...>` (Incremental Add)
 
 Adds skills from the specified presets to your current active assembly without affecting other active links.
 
 * *Alternative syntax*: `skillsman use +dev +marketing`
 
-### 6. `skillsman deactivate <presets...>` (Incremental Remove)
+#### `skillsman deactivate <presets...>` (Incremental Remove)
 
 Removes skills from the specified presets from your active assembly.
 
 * *Alternative syntax*: `skillsman use -marketing`
+
+---
+
+### 2. Delegated Original Commands
+
+The following commands are transparently delegated to the official `skills` package, directing all updates and installations straight to the `skillsman` library:
+
+* `skillsman add <package>` — Add a skill package. Automatically triggers a post-install collection hook to move the new skill to the library and generate its preset.
+* `skillsman remove [skills...]` — Remove installed skills. Automatically replaces links with temporary physical folders for the duration of the command, and triggers a post-removal cleanup hook to purge folders and presets.
+* `skillsman list [args...]` (alias: `ls`) — List installed skills inside the sandboxed library.
+* `skillsman update [skills...]` (alias: `upgrade`) — Update installed skills.
+* `skillsman find [query]` — Search for skills interactively.
+* `skillsman init [name]` — Initialize a new template skill project.
+* `skillsman experimental_install` — Restore skills from `skills-lock.json`.
+* `skillsman experimental_sync` — Sync skills from `node_modules` into agent directories.
 
 ---
 
@@ -117,11 +137,3 @@ If a preset named `never.md` exists, any skill listed in it is strictly forbidde
 * 🎯 **Direct Exclusion Only**: Only skills directly and explicitly listed inside the `never` preset are excluded (it is parsed flatly without any recursive traversal of nested presets).
 * **CLI Warnings**: The CLI will warn you if a blacklisted skill was requested:
     `⚠ Skipped blacklisted skill: "seo" (defined in neverPresets)`
-
----
-
-## 📝 Best Practices on Preset Authoring
-
-1. **Semantic Naming**: Name your preset markdown files exactly as the name specified in the frontmatter (e.g., `dev.md` with `name: dev`).
-2. **Keep `always.md` Light**: Use `always.md` only for skills that are absolute prerequisites for all your workflows (e.g., terminal utilities, basic agents), as they are loaded in the background for every command.
-3. **Modular Presets**: Instead of creating one giant preset, split your skills into small, specialized presets (e.g., `react`, `jest`, `accessibility`) and reference them using `presets:` arrays to build larger assemblies.
