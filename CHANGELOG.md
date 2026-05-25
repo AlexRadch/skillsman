@@ -11,17 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Modular API / CLI Separation**: Refactored `index.js` into a lightweight, pure programmatic API. Removed all `commander` imports and CLI logic, making `require('skillsman')` extremely fast and clean of console artifacts.
+- **Unified skills / skillsman CLI**: Created `cli.js` as the new unified executable entry point, mapping both global commands (`skills` and `skillsman`) to it, supercharging the standard `skills` tool with native preset management out-of-the-box.
+- **Self-Healing Global Shims**: Integrated a lightweight 1.5ms check (`ensureSkillsLink`) run on every CLI execution. Automatically detects if the global `skills` command was overwritten by another installation and restores it programmatically (cross-platform, zero-privilege on Windows).
+- **Environment & Path Redirection**: Configured delegated package-manager commands (`add`, `remove`, `update`, `find`, `list`, `init` for templates, etc.) to execute under sandboxed `XDG_STATE_HOME` and `XDG_DATA_HOME` environment variables, redirecting all operations seamlessly straight to `skillsman`'s local library.
+- **Automatic Ingestion & Preset Hooks (`skills collect`)**: Replaced `init` (for environment setup) with a unified `collect` command. It scans `~/.agents/skills/` for physical directories, migrates them to the library, generates a corresponding preset on-the-fly (parsing metadata from `SKILL.md` using `gray-matter`), and creates Directory Junctions.
+- **Auto-Preset and Clean-up Hooks**: Configured automatic hook post-processing that creates preset markdown files after successful `skills add` installations, and purges orphaned library folders and preset files after `skills remove`.
+- **Renamed Overlapping Commands**: Renamed preset listing `list`/`ls` to `presets` (alias `ps`), and environment setup `init` to `collect`, keeping `init` reserved exclusively for initializing new skill project templates.
+
 ## [0.1.2] - 2026-05-25
 
 ### Added
 
-- **Unified Release & Publish Pipeline**: Merged separate workflows into a single, intelligent `release-and-publish.yml` file.
-- **Trusted Publishing Integration**: Migrated NPM publishing to passwordless OIDC authentication (Trusted Publishing), eliminating long-lived credentials.
-- **Automated Provenance Badges**: Added automatic package build provenance attestations (`--provenance`) for verified supply chain security on npmjs.com.
-- **Smart Deployment Guard**: Configured real-time checks to query GitHub CLI and the public NPM registry to dynamically skip redundant releases or publishes.
-- **Resilient Changelog Extractor**: Enhanced `extract-changelog.js` to gracefully fall back to default release notes if a version's changelog section is empty.
-- **Workflow Cleanups**: Removed obsolete branch triggers (`master`) from the test execution runner (`test.yml`).
-- **Environment Upgrades**: Upgraded the release workflow runner to Node.js v22 and dynamically updated the npm CLI to the latest version to ensure full compatibility with the modern OIDC Trusted Publishing protocols.
+- **Security & Delivery Infrastructure**: Migrated package publishing to passwordless OIDC Trusted Publishing with automated provenance attestations for verified supply chain security on npmjs.com, and unified CI/CD release workflows.
 
 ## [0.1.1] - 2026-05-24
 

@@ -3,10 +3,11 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { setTestEnv, init, usePresets, syncState, loadState, saveState, getPaths } = require('../../index');
+const { setTestEnv, collect, usePresets, syncState, loadState, saveState, getPaths } = require('../../index');
 
 describe('CLI Integration Tests', () => {
-  const sandboxPath = path.join(__dirname, '..', 'sandbox-integration');
+  const realTestsDir = fs.realpathSync(path.join(__dirname, '..'));
+  const sandboxPath = path.join(realTestsDir, 'sandbox-integration');
   let paths;
 
   before(() => {
@@ -24,7 +25,7 @@ describe('CLI Integration Tests', () => {
   });
 
   it('1. should initialize the environment folders and state file successfully', () => {
-    init();
+    collect();
 
     // Verify target structure
     assert.ok(fs.existsSync(paths.LIBRARY_DIR));
@@ -122,26 +123,26 @@ skills:
   });
 
   it('7. should output structured commander CLI help text via subprocess --help flag', () => {
-    const indexPath = path.join(__dirname, '..', '..', 'index.js');
-    const helpOutput = execSync(`node "${indexPath}" --help`, { encoding: 'utf8' });
+    const cliPath = path.join(__dirname, '..', '..', 'cli.js');
+    const helpOutput = execSync(`node "${cliPath}" --help`, { encoding: 'utf8' });
     assert.ok(helpOutput.includes('Usage: skillsman'));
     assert.ok(helpOutput.includes('CLI manager for AI agent skills presets'));
-    assert.ok(helpOutput.includes('init'));
-    assert.ok(helpOutput.includes('list|ls'));
+    assert.ok(helpOutput.includes('collect'));
+    assert.ok(helpOutput.includes('presets'));
     assert.ok(helpOutput.includes('status'));
     assert.ok(helpOutput.includes('use'));
   });
 
   it('8. should fallback to output help when run with no arguments', () => {
-    const indexPath = path.join(__dirname, '..', '..', 'index.js');
-    const noArgsOutput = execSync(`node "${indexPath}"`, { encoding: 'utf8' });
+    const cliPath = path.join(__dirname, '..', '..', 'cli.js');
+    const noArgsOutput = execSync(`node "${cliPath}"`, { encoding: 'utf8' });
     assert.ok(noArgsOutput.includes('Usage: skillsman'));
   });
 
   it('9. should exit with exit code 1 for invalid/unknown CLI commands', () => {
-    const indexPath = path.join(__dirname, '..', '..', 'index.js');
+    const cliPath = path.join(__dirname, '..', '..', 'cli.js');
     try {
-      execSync(`node "${indexPath}" invalidcommand`, { stdio: 'pipe' });
+      execSync(`node "${cliPath}" invalidcommand`, { stdio: 'pipe' });
       assert.fail('Should have failed with a non-zero exit status for invalid command');
     } catch (err) {
       assert.strictEqual(err.status, 1);
@@ -317,5 +318,70 @@ skills:
       path.resolve(paths.SKILLS_DIR, fs.readlinkSync(selfCyclicPath)),
       path.resolve(path.join(paths.LIBRARY_DIR, 'self-cyclic-skill'))
     );
+  });
+
+  it('14. should automatically self-heal and repair global command shims on execution', () => {
+    const isWindows = process.platform === 'win32';
+    const fakeNpmBinDir = path.join(sandboxPath, 'fake-npm-bin');
+    fs.mkdirSync(fakeNpmBinDir, { recursive: true });
+
+    // 1. Pre-create the fake "source" shims representing the globals NPM creates for skillsman
+    if (isWindows) {
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'skillsman'), 'node index.js "$@"', 'utf8');
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'skillsman.cmd'), 'node.exe index.js %*', 'utf8');
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'skillsman.ps1'), 'node.exe index.js $args', 'utf8');
+
+      // Pre-create the "stale" or "collision" shims pointing to the wrong package for both skills and add-skill
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'skills'), 'node wrong.js "$@"', 'utf8');
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'skills.cmd'), 'node.exe wrong.js %*', 'utf8');
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'skills.ps1'), 'node.exe wrong.js $args', 'utf8');
+
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'add-skill'), 'node wrong.js "$@"', 'utf8');
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'add-skill.cmd'), 'node.exe wrong.js %*', 'utf8');
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'add-skill.ps1'), 'node.exe wrong.js $args', 'utf8');
+    } else {
+      // Unix: pre-create regular files to simulate collisions (which should be replaced by symlinks)
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'skills'), 'legacy file content', 'utf8');
+      fs.writeFileSync(path.join(fakeNpmBinDir, 'add-skill'), 'legacy file content', 'utf8');
+    }
+
+    const cliPath = path.resolve(__dirname, '..', '..', 'cli.js');
+
+    // 2. Spawn cli.js in a subprocess, setting the sandboxed testing directory
+    execSync(`node "${cliPath}" presets`, {
+      env: {
+        ...process.env,
+        SKILLSMAN_SHIM_TEST_DIR: fakeNpmBinDir
+      },
+      stdio: 'pipe'
+    });
+
+    // 3. Verify shims are healed!
+    if (isWindows) {
+      const cmdContent = fs.readFileSync(path.join(fakeNpmBinDir, 'skills.cmd'), 'utf8');
+      const ps1Content = fs.readFileSync(path.join(fakeNpmBinDir, 'skills.ps1'), 'utf8');
+      const bashContent = fs.readFileSync(path.join(fakeNpmBinDir, 'skills'), 'utf8');
+
+      assert.ok(cmdContent.includes('cli.js'), 'skills.cmd failed to self-heal');
+      assert.ok(ps1Content.includes('cli.js'), 'skills.ps1 failed to self-heal');
+      assert.ok(bashContent.includes('cli.js'), 'skills failed to self-heal');
+
+      const addCmdContent = fs.readFileSync(path.join(fakeNpmBinDir, 'add-skill.cmd'), 'utf8');
+      const addPs1Content = fs.readFileSync(path.join(fakeNpmBinDir, 'add-skill.ps1'), 'utf8');
+      const addBashContent = fs.readFileSync(path.join(fakeNpmBinDir, 'add-skill'), 'utf8');
+
+      assert.ok(addCmdContent.includes('cli.js'), 'add-skill.cmd failed to self-heal');
+      assert.ok(addPs1Content.includes('cli.js'), 'add-skill.ps1 failed to self-heal');
+      assert.ok(addBashContent.includes('cli.js'), 'add-skill failed to self-heal');
+    } else {
+      for (const cmdName of ['skills', 'add-skill']) {
+        const linkPath = path.join(fakeNpmBinDir, cmdName);
+        const stats = fs.lstatSync(linkPath);
+
+        assert.ok(stats.isSymbolicLink(), `${cmdName} was not converted to a symlink`);
+        const target = fs.readlinkSync(linkPath);
+        assert.strictEqual(path.resolve(target), path.resolve(cliPath), `Unix symlink for ${cmdName} fails to point to cli.js`);
+      }
+    }
   });
 });
