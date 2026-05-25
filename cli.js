@@ -173,12 +173,12 @@ function main() {
       }
     );
 
-  // === DELEGATED NPX SKILLS COMMANDS ===
+  // === DELEGATED ORIGINAL SKILLS COMMANDS ===
 
   program
     .command('list [args...]')
     .alias('ls')
-    .description('List installed skills (delegated to npx skills)')
+    .description('List installed skills (delegated to original skills)')
     .allowUnknownOption()
     .action(() => {
       const rawArgs = process.argv.slice(3);
@@ -188,7 +188,7 @@ function main() {
   program
     .command('add <package> [args...]')
     .alias('a')
-    .description('Add a skill package (delegated to npx skills)')
+    .description('Add a skill package (delegated to original skills)')
     .allowUnknownOption()
     .action(() => {
       const rawArgs = process.argv.slice(3);
@@ -198,7 +198,7 @@ function main() {
   program
     .command('remove [args...]')
     .alias('rm')
-    .description('Remove installed skills (delegated to npx skills)')
+    .description('Remove installed skills (delegated to original skills)')
     .allowUnknownOption()
     .action(() => {
       const rawArgs = process.argv.slice(3);
@@ -208,7 +208,7 @@ function main() {
   program
     .command('update [args...]')
     .alias('upgrade')
-    .description('Update skills to latest versions (delegated to npx skills)')
+    .description('Update skills to latest versions (delegated to original skills)')
     .allowUnknownOption()
     .action(() => {
       const rawArgs = process.argv.slice(3);
@@ -217,7 +217,7 @@ function main() {
 
   program
     .command('find [args...]')
-    .description('Search for skills interactively (delegated to npx skills)')
+    .description('Search for skills interactively (delegated to original skills)')
     .allowUnknownOption()
     .action(() => {
       const rawArgs = process.argv.slice(3);
@@ -226,7 +226,7 @@ function main() {
 
   program
     .command('init [args...]')
-    .description('Initialize a new template skill project (delegated to npx skills)')
+    .description('Initialize a new template skill project (delegated to original skills)')
     .allowUnknownOption()
     .action(() => {
       const rawArgs = process.argv.slice(3);
@@ -235,7 +235,7 @@ function main() {
 
   program
     .command('experimental_install [args...]')
-    .description('Restore skills from skills-lock.json (delegated to npx skills)')
+    .description('Restore skills from skills-lock.json (delegated to original skills)')
     .allowUnknownOption()
     .action(() => {
       const rawArgs = process.argv.slice(3);
@@ -244,7 +244,7 @@ function main() {
 
   program
     .command('experimental_sync [args...]')
-    .description('Sync skills from node_modules into agent directories (delegated to npx skills)')
+    .description('Sync skills from node_modules into agent directories (delegated to original skills)')
     .allowUnknownOption()
     .action(() => {
       const rawArgs = process.argv.slice(3);
