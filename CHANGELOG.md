@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-05-25
+
 ## [0.1.1] - 2026-05-24
 
 This is the initial development preview release of `skillsman` — a modern, zero-dependency Node.js CLI utility designed to structure, manage, and dynamically swap presets of portable AI Agent Skills.
