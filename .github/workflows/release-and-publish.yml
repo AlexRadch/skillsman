@@ -8,17 +8,10 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      skip-tests:
-        description: 'Skip running tests before publishing'
-        type: boolean
-        required: false
-        default: false
 
 jobs:
   test:
     name: Run Tests
-    if: ${{ github.event_name == 'push' || github.event_name == 'release' || !inputs.skip-tests }}
     uses: ./.github/workflows/test.yml
 
   check-status:
@@ -83,7 +76,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'npm'
 
       - name: Extract Release Notes
@@ -120,7 +113,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install Dependencies
         run: npm ci
