@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - master
   workflow_dispatch: # Allows manual trigger from the GitHub Actions UI
   workflow_call: # Allows this workflow to be called by other workflows
 

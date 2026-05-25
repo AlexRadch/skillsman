@@ -36,10 +36,11 @@ for (const line of lines) {
 
 const result = sectionLines.join('\n').trim();
 if (!result) {
-  console.error(`Error: Could not find changelog section for version "${version}" in CHANGELOG.md`);
-  process.exit(1);
+  console.log(`⚠ Warning: Changelog section for version "${version}" is empty. Creating default release notes.`);
+  const defaultNotes = `## Release ${version}\n\nNo detailed release notes provided for this version. See [CHANGELOG.md](https://github.com/AlexRadch/skillsman/blob/main/CHANGELOG.md) for full history.`;
+  fs.writeFileSync(path.join(__dirname, '..', 'RELEASE_NOTES.md'), defaultNotes, 'utf8');
+} else {
+  fs.writeFileSync(path.join(__dirname, '..', 'RELEASE_NOTES.md'), result, 'utf8');
+  console.log(`✔ Successfully extracted release notes for version ${version} to RELEASE_NOTES.md`);
 }
 
-// Write the output to a temporary markdown file for the GitHub Action to consume
-fs.writeFileSync(path.join(__dirname, '..', 'RELEASE_NOTES.md'), result, 'utf8');
-console.log(`✔ Successfully extracted release notes for version ${version} to RELEASE_NOTES.md`);

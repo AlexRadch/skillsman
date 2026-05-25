@@ -1,5 +1,7 @@
 # Changelog
 
+<!-- markdownlint-disable MD024 -->
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
@@ -10,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [0.1.2] - 2026-05-25
+
+### Added
+
+- **Unified Release & Publish Pipeline**: Merged separate workflows into a single, intelligent `release-and-publish.yml` file.
+- **Trusted Publishing Integration**: Migrated NPM publishing to passwordless OIDC authentication (Trusted Publishing), eliminating long-lived credentials.
+- **Automated Provenance Badges**: Added automatic package build provenance attestations (`--provenance`) for verified supply chain security on npmjs.com.
+- **Smart Deployment Guard**: Configured real-time checks to query GitHub CLI and the public NPM registry to dynamically skip redundant releases or publishes.
+- **Resilient Changelog Extractor**: Enhanced `extract-changelog.js` to gracefully fall back to default release notes if a version's changelog section is empty.
+- **Workflow Cleanups**: Removed obsolete branch triggers (`master`) from the test execution runner (`test.yml`).
 
 ## [0.1.1] - 2026-05-24
 
