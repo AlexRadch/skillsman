@@ -77,12 +77,119 @@ let LIBRARY_DIR = path.join(getXdgDataHome(), 'skillsman', 'skills');
 let PRESETS_DIR = path.join(getXdgConfigHome(), 'skillsman', 'presets');
 let STATE_FILE = path.join(getXdgStateHome(), 'skillsman', 'state.json');
 
+/** @type {Record<string, { path: string, key: string }>} */
+const SUPPORTED_AGENTS = {
+  'default': { path: '.agents/skills', key: 'default' },
+  'config_agents': { path: '.config/agents/skills', key: 'config_agents' },
+  'aider-desk': { path: '.aider-desk/skills', key: 'aider-desk' },
+  'amp': { path: '.config/agents/skills', key: 'config_agents' },
+  'kimi-cli': { path: '.config/agents/skills', key: 'config_agents' },
+  'replit': { path: '.config/agents/skills', key: 'config_agents' },
+  'universal': { path: '.config/agents/skills', key: 'config_agents' },
+  'antigravity': { path: '.gemini/antigravity/skills', key: 'antigravity' },
+  'augment': { path: '.augment/skills', key: 'augment' },
+  'bob': { path: '.bob/skills', key: 'bob' },
+  'claude-code': { path: '.claude/skills', key: 'claude-code' },
+  'openclaw': { path: '.openclaw/skills', key: 'openclaw' },
+  'cline': { path: '.agents/skills', key: 'default' },
+  'dexto': { path: '.agents/skills', key: 'default' },
+  'warp': { path: '.agents/skills', key: 'default' },
+  'codearts-agent': { path: '.codeartsdoer/skills', key: 'codearts-agent' },
+  'codebuddy': { path: '.codebuddy/skills', key: 'codebuddy' },
+  'codemaker': { path: '.codemaker/skills', key: 'codemaker' },
+  'codestudio': { path: '.codestudio/skills', key: 'codestudio' },
+  'codex': { path: '.codex/skills', key: 'codex' },
+  'command-code': { path: '.commandcode/skills', key: 'command-code' },
+  'continue': { path: '.continue/skills', key: 'continue' },
+  'cortex': { path: '.snowflake/cortex/skills', key: 'cortex' },
+  'crush': { path: '.config/crush/skills', key: 'crush' },
+  'cursor': { path: '.cursor/skills', key: 'cursor' },
+  'deepagents': { path: '.deepagents/agent/skills', key: 'deepagents' },
+  'devin': { path: '.config/devin/skills', key: 'devin' },
+  'droid': { path: '.factory/skills', key: 'droid' },
+  'firebender': { path: '.firebender/skills', key: 'firebender' },
+  'forgecode': { path: '.forge/skills', key: 'forgecode' },
+  'gemini-cli': { path: '.gemini/skills', key: 'gemini-cli' },
+  'github-copilot': { path: '.copilot/skills', key: 'github-copilot' },
+  'goose': { path: '.config/goose/skills', key: 'goose' },
+  'hermes-agent': { path: '.hermes/skills', key: 'hermes-agent' },
+  'junie': { path: '.junie/skills', key: 'junie' },
+  'iflow-cli': { path: '.iflow/skills', key: 'iflow-cli' },
+  'kilo': { path: '.kilocode/skills', key: 'kilo' },
+  'kiro-cli': { path: '.kiro/skills', key: 'kiro-cli' },
+  'kode': { path: '.kode/skills', key: 'kode' },
+  'mcpjam': { path: '.mcpjam/skills', key: 'mcpjam' },
+  'mistral-vibe': { path: '.vibe/skills', key: 'mistral-vibe' },
+  'mux': { path: '.mux/skills', key: 'mux' },
+  'opencode': { path: '.config/opencode/skills', key: 'opencode' },
+  'openhands': { path: '.openhands/skills', key: 'openhands' },
+  'pi': { path: '.pi/agent/skills', key: 'pi' },
+  'qoder': { path: '.qoder/skills', key: 'qoder' },
+  'qwen-code': { path: '.qwen/skills', key: 'qwen-code' },
+  'rovodev': { path: '.rovodev/skills', key: 'rovodev' },
+  'roo': { path: '.roo/skills', key: 'roo' },
+  'tabnine-cli': { path: '.tabnine/agent/skills', key: 'tabnine-cli' },
+  'trae': { path: '.trae/skills', key: 'trae' },
+  'trae-cn': { path: '.trae-cn/skills', key: 'trae-cn' },
+  'windsurf': { path: '.codeium/windsurf/skills', key: 'windsurf' },
+  'zencoder': { path: '.zencoder/skills', key: 'zencoder' },
+  'neovate': { path: '.neovate/skills', key: 'neovate' },
+  'pochi': { path: '.pochi/skills', key: 'pochi' },
+  'adal': { path: '.adal/skills', key: 'adal' }
+};
+
+/**
+ * Validates agent keys against SUPPORTED_AGENTS.
+ * Exits with status code 1 if any key is invalid.
+ * @param {string[]} [agentKeys] - The agent keys to validate
+ * @returns {void}
+ */
+function validateAgentKeys(agentKeys) {
+  if (!agentKeys || agentKeys.length === 0) return;
+  for (const agent of agentKeys) {
+    if (!Object.prototype.hasOwnProperty.call(SUPPORTED_AGENTS, agent)) {
+      console.error(`Error: Invalid agent: ${agent}`);
+      process.exit(1);
+    }
+  }
+}
+
+/**
+ * Resolves the canonical state.json configuration key for a given agent option key.
+ * Ensures agents sharing identical paths share the same configuration key.
+ * @param {string} agentKey - The agent key (e.g. 'replit', 'cline', 'aider-desk')
+ * @returns {string} The canonical state key (e.g. 'default', 'config_agents', 'aider-desk')
+ */
+function getAgentConfigKey(agentKey) {
+  return SUPPORTED_AGENTS[agentKey]?.key || 'default';
+}
+
+/**
+ * Resolves the absolute directory path for a given agent key.
+ * Maps alias keys ('cline', 'dexto', 'warp') to the common 'default' path.
+ * @param {string} agentKey - The agent key (e.g. 'default', 'aider-desk')
+ * @param {string} [home] - The user home directory (defaults to USER_HOME)
+ * @returns {string} The resolved absolute skills directory path
+ */
+function getAgentSkillsDir(agentKey, home = USER_HOME) {
+  const configKey = getAgentConfigKey(agentKey);
+  if (configKey === 'default' && home === USER_HOME) {
+    return SKILLS_DIR;
+  }
+  const relPath = SUPPORTED_AGENTS[configKey]?.path;
+  if (!relPath) {
+    return path.join(home, '.agents', 'skills');
+  }
+  return path.join(home, ...relPath.split('/'));
+}
+
 /**
  * Configure test environment paths (used by unit and integration tests)
  * @param {string} sandboxPath - The sandbox root path
  * @returns {void}
  */
 function setTestEnv(sandboxPath) {
+  USER_HOME = sandboxPath;
   AGENTS_DIR = sandboxPath;
   SKILLS_DIR = path.join(AGENTS_DIR, 'skills');
   
@@ -93,10 +200,10 @@ function setTestEnv(sandboxPath) {
 }
 
 /**
- * Returns the default state structure
+ * Returns the default state structure for a single agent
  * @returns {{ activePresets: string[], alwaysPresets: string[], neverPresets: string[] }}
  */
-function getDefaultState() {
+function getDefaultAgentState() {
   return {
     activePresets: [],
     alwaysPresets: ['always'],
@@ -105,8 +212,18 @@ function getDefaultState() {
 }
 
 /**
+ * Returns the default state structure
+ * @returns {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>}
+ */
+function getDefaultState() {
+  return {
+    'default': getDefaultAgentState()
+  };
+}
+
+/**
  * Loads the state from state.json
- * @returns {{ activePresets: string[], alwaysPresets: string[], neverPresets: string[] }}
+ * @returns {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>}
  */
 function loadState() {
   if (!fs.existsSync(STATE_FILE)) {
@@ -115,9 +232,22 @@ function loadState() {
   try {
     const data = fs.readFileSync(STATE_FILE, 'utf8');
     const state = JSON.parse(data);
-    if (!Array.isArray(state.activePresets)) state.activePresets = [];
-    if (!Array.isArray(state.alwaysPresets)) state.alwaysPresets = ['always'];
-    if (!Array.isArray(state.neverPresets)) state.neverPresets = ['never'];
+    if (!state || typeof state !== 'object') {
+      return getDefaultState();
+    }
+    for (const key of Object.keys(state)) {
+      const agentState = state[key];
+      if (agentState && typeof agentState === 'object') {
+        if (!Array.isArray(agentState.activePresets)) agentState.activePresets = [];
+        if (!Array.isArray(agentState.alwaysPresets)) agentState.alwaysPresets = ['always'];
+        if (!Array.isArray(agentState.neverPresets)) agentState.neverPresets = ['never'];
+      } else {
+        state[key] = getDefaultAgentState();
+      }
+    }
+    if (!state['default']) {
+      state['default'] = getDefaultAgentState();
+    }
     return state;
   } catch (err) {
     return getDefaultState();
@@ -126,7 +256,7 @@ function loadState() {
 
 /**
  * Saves the state to state.json
- * @param {{ activePresets: string[], alwaysPresets: string[], neverPresets: string[] }} state - The state object to save
+ * @param {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>} state - The state object to save
  * @returns {void}
  */
 function saveState(state) {
@@ -298,11 +428,13 @@ function resolveFinalSkills(state) {
 /**
  * Core Logic: collect
  * Description: Initializes directory structure, state.json, and automatically collects/migrates
- * existing physical skill directories from ~/.agents/skills/ into the library, replacing them with symlinks
+ * existing physical skill directories from active directories into the library, replacing them with symlinks
  * and generating corresponding skillsman presets.
+ * @param {string[]} [agentKeys] - The agents to scan (scans all supported agents if undefined/empty)
  * @returns {void}
  */
-function collect() {
+function collect(agentKeys) {
+  validateAgentKeys(agentKeys);
   console.log('\x1b[36m%s\x1b[0m', '=== Collecting Skills and Initializing Environment ===');
 
   // 1. Gracefully generate folders in their respective XDG config, state, and data locations
@@ -327,83 +459,94 @@ function collect() {
     console.log(`\x1b[32m✔\x1b[0m Initialized state file: ${STATE_FILE}`);
   }
 
-  // 2. Scan active projection directory for any physical skill folders to collect/migrate
-  if (!fs.existsSync(SKILLS_DIR)) {
-    fs.mkdirSync(SKILLS_DIR, { recursive: true });
+  // Determine directories to scan
+  /** @type {string[]} */
+  let targetDirs;
+  if (agentKeys && agentKeys.length > 0) {
+    targetDirs = Array.from(new Set(agentKeys.map(k => getAgentSkillsDir(k))));
+  } else {
+    targetDirs = Array.from(new Set(Object.keys(SUPPORTED_AGENTS).map(k => getAgentSkillsDir(k))));
   }
 
-  const items = fs.readdirSync(SKILLS_DIR);
   let migratedCount = 0;
 
-  for (const item of items) {
-    const itemPath = path.join(SKILLS_DIR, item);
-    const stat = fs.lstatSync(itemPath);
+  for (const skillsDir of targetDirs) {
+    if (!fs.existsSync(skillsDir)) {
+      continue;
+    }
 
-    // If it is a physical directory (not a symlink/junction), we migrate it!
-    if (stat.isDirectory() && !stat.isSymbolicLink()) {
-      console.log(`  \x1b[33m⚡ Found physical folder to collect:\x1b[0m ${item}`);
+    const items = fs.readdirSync(skillsDir);
 
-      const targetPath = path.join(LIBRARY_DIR, item);
+    for (const item of items) {
+      const itemPath = path.join(skillsDir, item);
+      const stat = fs.lstatSync(itemPath);
 
-      // If already exists in library, remove the one in active directory and replace it with a symlink
-      if (fs.existsSync(targetPath)) {
-        console.warn(`  \x1b[33m⚠ Already exists in library:\x1b[0m ${item}. Overwriting library folder.`);
-        fs.rmSync(targetPath, { recursive: true, force: true });
-      }
+      // If it is a physical directory (not a symlink/junction), we migrate it!
+      if (stat.isDirectory() && !stat.isSymbolicLink()) {
+        console.log(`  \x1b[33m⚡ Found physical folder to collect in [${skillsDir}]:\x1b[0m ${item}`);
 
-      // Move directory to library
-      try {
-        fs.renameSync(itemPath, targetPath);
-      } catch (err) {
-        // Fallback if cross-device link error
-        fs.cpSync(itemPath, targetPath, { recursive: true });
-        fs.rmSync(itemPath, { recursive: true, force: true });
-      }
+        const targetPath = path.join(LIBRARY_DIR, item);
 
-      console.log(`  \x1b[32m✔\x1b[0m Moved to library: ${item}`);
-
-      // Auto-generate preset file for this skill if it doesn't exist
-      const presetPath = path.join(PRESETS_DIR, `${item}.md`);
-      if (!fs.existsSync(presetPath)) {
-        let title = item;
-        let description = `Automatically collected preset for ${item} skill`;
-
-        // Attempt to parse SKILL.md to extract metadata
-        const skillMdPath = path.join(targetPath, 'SKILL.md');
-        if (fs.existsSync(skillMdPath)) {
-          try {
-            const skillContent = fs.readFileSync(skillMdPath, 'utf8');
-            const { data } = parseFrontmatter(skillContent);
-            if (data.name) title = data.name;
-            if (data.description) description = data.description;
-          } catch (e) {
-            // Ignored
-          }
+        // If already exists in library, remove the one in active directory and replace it with a symlink
+        if (fs.existsSync(targetPath)) {
+          console.warn(`  \x1b[33m⚠ Already exists in library:\x1b[0m ${item}. Overwriting library folder.`);
+          fs.rmSync(targetPath, { recursive: true, force: true });
         }
 
-        const presetContent = [
-          '---',
-          `name: ${title}`,
-          `description: "${description.replace(/"/g, '\\"')}"`,
-          'skills:',
-          `  - ${item}`,
-          '---',
-          `# ${title}`,
-          '',
-          description,
-          ''
-        ].join('\n');
+        // Move directory to library
+        try {
+          fs.renameSync(itemPath, targetPath);
+        } catch (err) {
+          // Fallback if cross-device link error
+          fs.cpSync(itemPath, targetPath, { recursive: true });
+          fs.rmSync(itemPath, { recursive: true, force: true });
+        }
 
-        fs.writeFileSync(presetPath, presetContent, 'utf8');
-        console.log(`  \x1b[32m✔\x1b[0m Generated preset: ${item}.md`);
+        console.log(`  \x1b[32m✔\x1b[0m Moved to library: ${item}`);
+
+        // Auto-generate preset file for this skill if it doesn't exist
+        const presetPath = path.join(PRESETS_DIR, `${item}.md`);
+        if (!fs.existsSync(presetPath)) {
+          let title = item;
+          let description = `Automatically collected preset for ${item} skill`;
+
+          // Attempt to parse SKILL.md to extract metadata
+          const skillMdPath = path.join(targetPath, 'SKILL.md');
+          if (fs.existsSync(skillMdPath)) {
+            try {
+              const skillContent = fs.readFileSync(skillMdPath, 'utf8');
+              const { data } = parseFrontmatter(skillContent);
+              if (data.name) title = data.name;
+              if (data.description) description = data.description;
+            } catch (e) {
+              // Ignored
+            }
+          }
+
+          const presetContent = [
+            '---',
+            `name: ${title}`,
+            `description: "${description.replace(/"/g, '\\"')}"`,
+            'skills:',
+            `  - ${item}`,
+            '---',
+            `# ${title}`,
+            '',
+            description,
+            ''
+          ].join('\n');
+
+          fs.writeFileSync(presetPath, presetContent, 'utf8');
+          console.log(`  \x1b[32m✔\x1b[0m Generated preset: ${item}.md`);
+        }
+
+        // Create symlink junction back in active skillsDir
+        const isWindows = process.platform === 'win32';
+        fs.symlinkSync(targetPath, itemPath, isWindows ? 'junction' : 'dir');
+        console.log(`  \x1b[32m✔\x1b[0m Replaced with junction: ${item} -> ${targetPath}`);
+        
+        migratedCount++;
       }
-
-      // Create symlink junction back in SKILLS_DIR
-      const isWindows = process.platform === 'win32';
-      fs.symlinkSync(targetPath, itemPath, isWindows ? 'junction' : 'dir');
-      console.log(`  \x1b[32m✔\x1b[0m Replaced with junction: ${item} -> ${targetPath}`);
-      
-      migratedCount++;
     }
   }
 
@@ -464,46 +607,64 @@ function listPresets() {
 /**
  * Command: status
  * Usage: skillsman status
+ * @param {string[]} [agentKeys] - Specific agents to show status for (defaults to all active/defined keys in state.json)
  * @returns {void}
  */
-function showStatus() {
-  const state = loadState();
+function showStatus(agentKeys) {
+  validateAgentKeys(agentKeys);
+  const multiState = loadState();
 
-  console.log('\x1b[36m%s\x1b[0m', '=== Current Preset State ===');
-  console.log(`  \x1b[1mActive Presets:\x1b[0m   ${state.activePresets.join(', ') || '\x1b[90mnone\x1b[0m'}`);
-  console.log(`  \x1b[1mAlways Presets:\x1b[0m   ${state.alwaysPresets.join(', ')}`);
-  console.log(`  \x1b[1mNever Presets:\x1b[0m    ${state.neverPresets.join(', ')}`);
-
-  console.log('\n\x1b[36m%s\x1b[0m', '=== Current Link Status ===');
-
-  if (!fs.existsSync(SKILLS_DIR)) {
-    console.log('\x1b[90mActive skills directory does not exist.\x1b[0m');
-    return;
+  // Determine which agent keys to display
+  /** @type {string[]} */
+  let targetKeys;
+  if (agentKeys && agentKeys.length > 0) {
+    targetKeys = Array.from(new Set(agentKeys.map(k => getAgentConfigKey(k))));
+  } else {
+    // Show all keys present in state
+    targetKeys = Object.keys(multiState);
   }
 
-  const items = fs.readdirSync(SKILLS_DIR);
-  if (items.length === 0) {
-    console.log('\x1b[90mNo active skill links found.\x1b[0m');
-    console.log('\x1b[37mUse "skillsman use <preset>" to activate some skills.\x1b[0m');
-    return;
-  }
+  for (const key of targetKeys) {
+    const agentState = multiState[key] || getDefaultAgentState();
+    const skillsDir = getAgentSkillsDir(key);
 
-  for (const item of items) {
-    const itemPath = path.join(SKILLS_DIR, item);
-    try {
-      const stat = fs.lstatSync(itemPath);
-      if (stat.isSymbolicLink()) {
-        const target = fs.readlinkSync(itemPath);
-        const resolvedTarget = path.resolve(path.dirname(itemPath), target);
-        console.log(`  \x1b[32m✔\x1b[0m \x1b[1m${item}\x1b[0m \x1b[90m->\x1b[0m \x1b[32m${resolvedTarget}\x1b[0m`);
-      } else if (stat.isDirectory()) {
-        console.log(`  \x1b[33m⚠ [Physical Directory]\x1b[0m \x1b[1m${item}\x1b[0m \x1b[90m(Not a symbolic link!)\x1b[0m`);
-      } else {
-        console.log(`  \x1b[90m? [Unknown FileType]\x1b[0m \x1b[1m${item}\x1b[0m`);
-      }
-    } catch (err) {
-      console.error(`  \x1b[31m✖ Error reading status for "${item}":\x1b[0m`, err instanceof Error ? err.message : String(err));
+    console.log('\x1b[36m%s\x1b[0m', `=== Current Preset State for agent "${key}" ===`);
+    console.log(`  \x1b[1mActive Presets:\x1b[0m   ${agentState.activePresets.join(', ') || '\x1b[90mnone\x1b[0m'}`);
+    console.log(`  \x1b[1mAlways Presets:\x1b[0m   ${agentState.alwaysPresets.join(', ')}`);
+    console.log(`  \x1b[1mNever Presets:\x1b[0m    ${agentState.neverPresets.join(', ')}`);
+
+    console.log('\n\x1b[36m%s\x1b[0m', `=== Current Link Status for agent "${key}" [${skillsDir}] ===`);
+
+    if (!fs.existsSync(skillsDir)) {
+      console.log('\x1b[90mActive skills directory does not exist.\x1b[0m\n');
+      continue;
     }
+
+    const items = fs.readdirSync(skillsDir);
+    if (items.length === 0) {
+      console.log('\x1b[90mNo active skill links found.\x1b[0m');
+      console.log('\x1b[37mUse "skillsman use <preset>" to activate some skills.\x1b[0m\n');
+      continue;
+    }
+
+    for (const item of items) {
+      const itemPath = path.join(skillsDir, item);
+      try {
+        const stat = fs.lstatSync(itemPath);
+        if (stat.isSymbolicLink()) {
+          const target = fs.readlinkSync(itemPath);
+          const resolvedTarget = path.resolve(path.dirname(itemPath), target);
+          console.log(`  \x1b[32m✔\x1b[0m \x1b[1m${item}\x1b[0m \x1b[90m->\x1b[0m \x1b[32m${resolvedTarget}\x1b[0m`);
+        } else if (stat.isDirectory()) {
+          console.log(`  \x1b[33m⚠ [Physical Directory]\x1b[0m \x1b[1m${item}\x1b[0m \x1b[90m(Not a symbolic link!)\x1b[0m`);
+        } else {
+          console.log(`  \x1b[90m? [Unknown FileType]\x1b[0m \x1b[1m${item}\x1b[0m`);
+        }
+      } catch (err) {
+        console.error(`  \x1b[31m✖ Error reading status for "${item}":\x1b[0m`, err instanceof Error ? err.message : String(err));
+      }
+    }
+    console.log();
   }
 }
 
@@ -512,9 +673,7 @@ function showStatus() {
  * @returns {void}
  */
 function syncState() {
-  console.log('\x1b[36m%s\x1b[0m', '=== Synchronizing active skills with state.json ===');
-
-  const state = loadState();
+  const multiState = loadState();
 
   // Ensure libraries and presets exist
   if (!fs.existsSync(PRESETS_DIR) || !fs.existsSync(LIBRARY_DIR)) {
@@ -522,176 +681,225 @@ function syncState() {
     process.exit(1);
   }
 
-  // Make sure active skills directory exists
-  if (!fs.existsSync(SKILLS_DIR)) {
-    fs.mkdirSync(SKILLS_DIR, { recursive: true });
-  }
+  for (const key of Object.keys(multiState)) {
+    const agentState = multiState[key];
+    const skillsDir = getAgentSkillsDir(key);
 
-  // 1. Resolve final skills list using DFS recursion
-  const { finalSkills, forbiddenSkills } = resolveFinalSkills(state);
+    console.log('\x1b[36m%s\x1b[0m', `=== Synchronizing active skills for agent "${key}" [${skillsDir}] ===`);
 
-  // 2. Read currently active symlinks in SKILLS_DIR
-  /** @type {Record<string, string|null>} */
-  const activeSymlinks = {};
-  /** @type {string[]} */
-  const physicalFolders = [];
-  if (fs.existsSync(SKILLS_DIR)) {
-    const items = fs.readdirSync(SKILLS_DIR);
-    for (const item of items) {
-      const itemPath = path.join(SKILLS_DIR, item);
-      const stat = fs.lstatSync(itemPath);
-      if (stat.isSymbolicLink()) {
-        try {
-          const target = fs.readlinkSync(itemPath);
-          const resolvedTarget = path.resolve(path.dirname(itemPath), target);
-          activeSymlinks[item] = safeRealpath(resolvedTarget);
-        } catch (e) {
-          activeSymlinks[item] = null;
+    // Make sure active skills directory exists
+    if (!fs.existsSync(skillsDir)) {
+      fs.mkdirSync(skillsDir, { recursive: true });
+    }
+
+    // 1. Resolve final skills list using DFS recursion
+    const { finalSkills, forbiddenSkills } = resolveFinalSkills(agentState);
+
+    // 2. Read currently active symlinks in skillsDir
+    /** @type {Record<string, string|null>} */
+    const activeSymlinks = {};
+    /** @type {string[]} */
+    const physicalFolders = [];
+    if (fs.existsSync(skillsDir)) {
+      const items = fs.readdirSync(skillsDir);
+      for (const item of items) {
+        const itemPath = path.join(skillsDir, item);
+        const stat = fs.lstatSync(itemPath);
+        if (stat.isSymbolicLink()) {
+          try {
+            const target = fs.readlinkSync(itemPath);
+            const resolvedTarget = path.resolve(path.dirname(itemPath), target);
+            activeSymlinks[item] = safeRealpath(resolvedTarget);
+          } catch (e) {
+            activeSymlinks[item] = null;
+          }
+        } else {
+          physicalFolders.push(item);
         }
-      } else {
-        physicalFolders.push(item);
       }
     }
-  }
 
-  // 3. Sync symlinks based on calculated finalSkills
-  let removedCount = 0;
-  let addedCount = 0;
-  let unchangedCount = 0;
+    // 3. Sync symlinks based on calculated finalSkills
+    let removedCount = 0;
+    let addedCount = 0;
+    let unchangedCount = 0;
 
-  // Remove obsolete active links (not in finalSkills)
-  for (const activeName of Object.keys(activeSymlinks)) {
-    if (!finalSkills.has(activeName)) {
-      const linkPath = path.join(SKILLS_DIR, activeName);
-      try {
-        fs.unlinkSync(linkPath);
-        console.log(`  \x1b[31m- Removed link:\x1b[0m ${activeName}`);
-        removedCount++;
-      } catch (err) {
-        console.error(`\x1b[31mError removing link "${activeName}":\x1b[0m`, err instanceof Error ? err.message : String(err));
+    // Remove obsolete active links (not in finalSkills)
+    for (const activeName of Object.keys(activeSymlinks)) {
+      if (!finalSkills.has(activeName)) {
+        const linkPath = path.join(skillsDir, activeName);
+        try {
+          fs.unlinkSync(linkPath);
+          console.log(`  \x1b[31m- Removed link:\x1b[0m ${activeName}`);
+          removedCount++;
+        } catch (err) {
+          console.error(`\x1b[31mError removing link "${activeName}":\x1b[0m`, err instanceof Error ? err.message : String(err));
+        }
       }
     }
-  }
 
-  // Create missing links (in finalSkills but not active)
-  for (const skillName of finalSkills) {
-    const targetPath = path.join(LIBRARY_DIR, skillName);
-    const linkPath = path.join(SKILLS_DIR, skillName);
+    // Create missing links (in finalSkills but not active)
+    for (const skillName of finalSkills) {
+      const targetPath = path.join(LIBRARY_DIR, skillName);
+      const linkPath = path.join(skillsDir, skillName);
 
-    // Validate physical existence in library
-    if (!fs.existsSync(targetPath)) {
-      console.error(`\x1b[31mError: Skill "${skillName}" is not found in library directory ${LIBRARY_DIR}.\x1b[0m`);
-      continue;
-    }
-
-    const currentLinkTarget = activeSymlinks[skillName];
-    if (currentLinkTarget) {
-      // Already linked. Verify target matches (robustly check physical paths to handle symlinks/junctions/drives redirects)
-      if (safeRealpath(currentLinkTarget) === safeRealpath(targetPath)) {
-        unchangedCount++;
+      // Validate physical existence in library
+      if (!fs.existsSync(targetPath)) {
+        console.error(`\x1b[31mError: Skill "${skillName}" is not found in library directory ${LIBRARY_DIR}.\x1b[0m`);
         continue;
       }
-      // target mismatch: remove and recreate
+
+      const currentLinkTarget = activeSymlinks[skillName];
+      if (currentLinkTarget) {
+        // Already linked. Verify target matches (robustly check physical paths to handle symlinks/junctions/drives redirects)
+        if (safeRealpath(currentLinkTarget) === safeRealpath(targetPath)) {
+          unchangedCount++;
+          continue;
+        }
+        // target mismatch: remove and recreate
+        try {
+          fs.unlinkSync(linkPath);
+        } catch (e) {}
+      } else if (physicalFolders.includes(skillName)) {
+        console.warn(`\x1b[33mWarning: Skipped creating link for "${skillName}" because a physical folder already exists in active folder.\x1b[0m`);
+        continue;
+      }
+
+      // Create link
       try {
-        fs.unlinkSync(linkPath);
-      } catch (e) {}
-    } else if (physicalFolders.includes(skillName)) {
-      console.warn(`\x1b[33mWarning: Skipped creating link for "${skillName}" because a physical folder already exists in active folder.\x1b[0m`);
-      continue;
-    }
-
-    // Create link
-    try {
-      const isWindows = process.platform === 'win32';
-      fs.symlinkSync(targetPath, linkPath, isWindows ? 'junction' : 'dir');
-      console.log(`  \x1b[32m+ Created link:\x1b[0m ${skillName}`);
-      addedCount++;
-    } catch (err) {
-      console.error(`\x1b[31mError creating link for "${skillName}":\x1b[0m`, err instanceof Error ? err.message : String(err));
-    }
-  }
-
-  // Warn if any active/always presets contains a blacklisted skill
-  for (const skill of forbiddenSkills) {
-    let wasRequested = false;
-    for (const preset of [...state.activePresets, ...state.alwaysPresets]) {
-      if (loadSkillsFromPreset(preset).includes(skill)) {
-        wasRequested = true;
-        break;
+        const isWindows = process.platform === 'win32';
+        fs.symlinkSync(targetPath, linkPath, isWindows ? 'junction' : 'dir');
+        console.log(`  \x1b[32m+ Created link:\x1b[0m ${skillName}`);
+        addedCount++;
+      } catch (err) {
+        console.error(`\x1b[31mError creating link for "${skillName}":\x1b[0m`, err instanceof Error ? err.message : String(err));
       }
     }
-    if (wasRequested) {
-      console.log(`  \x1b[33m⚠ Skipped blacklisted skill: "${skill}" (defined in neverPresets)\x1b[0m`);
+
+    // Warn if any active/always presets contains a blacklisted skill
+    for (const skill of forbiddenSkills) {
+      let wasRequested = false;
+      for (const preset of [...agentState.activePresets, ...agentState.alwaysPresets]) {
+        if (loadSkillsFromPreset(preset).includes(skill)) {
+          wasRequested = true;
+          break;
+        }
+      }
+      if (wasRequested) {
+        console.log(`  \x1b[33m⚠ Skipped blacklisted skill: "${skill}" (defined in neverPresets)\x1b[0m`);
+      }
+
+      // Warning if the blacklisted skill still exists as a physical directory
+      if (physicalFolders.includes(skill)) {
+        console.warn(`  \x1b[33m⚠ Warning: Skill "${skill}" is blacklisted in neverPresets, but a physical folder still exists in active directory: ${path.join(skillsDir, skill)}. Please remove it manually.\x1b[0m`);
+      }
     }
 
-    // Warning if the blacklisted skill still exists as a physical directory
-    if (physicalFolders.includes(skill)) {
-      console.warn(`  \x1b[33m⚠ Warning: Skill "${skill}" is blacklisted in neverPresets, but a physical folder still exists in active directory: ${path.join(SKILLS_DIR, skill)}. Please remove it manually.\x1b[0m`);
-    }
+    console.log(`\n\x1b[32m✔ Presets synchronized successfully for agent "${key}"!\x1b[0m`);
+    console.log(`  Added: ${addedCount} links | Removed: ${removedCount} links | Unchanged: ${unchangedCount} links\n`);
   }
-
-  console.log(`\n\x1b[32m✔ Presets synchronized successfully!\x1b[0m`);
-  console.log(`  Added: ${addedCount} links | Removed: ${removedCount} links | Unchanged: ${unchangedCount} links`);
 }
 
 /**
  * Command: use / activate / deactivate
  * Usage: skillsman use <preset1> [preset2]...
  * @param {string[]} presetArgs - The arguments passed to the preset use command
+ * @param {string[]} [agentKeys] - The specific agents to target (defaults to ['default'])
  * @returns {void}
  */
-function usePresets(presetArgs) {
+function usePresets(presetArgs, agentKeys = ['default']) {
+  validateAgentKeys(agentKeys);
+  const targetAgents = (!agentKeys || agentKeys.length === 0) ? ['default'] : agentKeys;
+
+  if (!presetArgs || presetArgs.length === 0) {
+    console.log('\x1b[36m%s\x1b[0m', '=== Synchronizing Presets (State Sync Mode) ===');
+    const multiState = loadState();
+
+    for (const rawKey of targetAgents) {
+      const canonicalKey = getAgentConfigKey(rawKey);
+      if (!multiState[canonicalKey]) {
+        multiState[canonicalKey] = getDefaultAgentState();
+      }
+    }
+    saveState(multiState);
+
+    for (const rawKey of targetAgents) {
+      const canonicalKey = getAgentConfigKey(rawKey);
+      const state = multiState[canonicalKey];
+      console.log(`\x1b[90mActive presets in state for "${canonicalKey}":\x1b[0m ${state.activePresets.join(', ') || 'none'}`);
+    }
+
+    syncState();
+    return;
+  }
+
   const isIncremental = presetArgs.some(arg => arg.startsWith('+') || arg.startsWith('-'));
+  const multiState = loadState();
 
-  const state = loadState();
+  for (const rawKey of targetAgents) {
+    const canonicalKey = getAgentConfigKey(rawKey);
+    if (!multiState[canonicalKey]) {
+      multiState[canonicalKey] = getDefaultAgentState();
+    }
+    const state = multiState[canonicalKey];
 
-  if (isIncremental) {
-    console.log('\x1b[36m%s\x1b[0m', '=== Updating Presets (Incremental Mode) ===');
-
-    for (const arg of presetArgs) {
-      let isRemove = arg.startsWith('-');
-      let presetName = arg;
-
-      if (arg.startsWith('+') || arg.startsWith('-')) {
-        presetName = arg.substring(1);
+    if (isIncremental) {
+      if (rawKey === targetAgents[0]) {
+        console.log('\x1b[36m%s\x1b[0m', '=== Updating Presets (Incremental Mode) ===');
       }
 
-      // Check if preset file physically exists before doing anything
-      const presetPath = path.join(PRESETS_DIR, `${presetName}.md`);
-      if (!fs.existsSync(presetPath)) {
-        console.error(`\x1b[31mError: Preset file not found for "${presetName}" at ${presetPath}\x1b[0m`);
-        process.exit(1);
-      }
+      for (const arg of presetArgs) {
+        let isRemove = arg.startsWith('-');
+        let presetName = arg;
 
-      if (isRemove) {
-        state.activePresets = state.activePresets.filter(p => p !== presetName);
-      } else {
-        if (!state.activePresets.includes(presetName)) {
-          state.activePresets.push(presetName);
+        if (arg.startsWith('+') || arg.startsWith('-')) {
+          presetName = arg.substring(1);
+        }
+
+        // Check if preset file physically exists before doing anything
+        const presetPath = path.join(PRESETS_DIR, `${presetName}.md`);
+        if (!fs.existsSync(presetPath)) {
+          console.error(`\x1b[31mError: Preset file not found for "${presetName}" at ${presetPath}\x1b[0m`);
+          process.exit(1);
+        }
+
+        if (isRemove) {
+          state.activePresets = state.activePresets.filter(p => p !== presetName);
+        } else {
+          if (!state.activePresets.includes(presetName)) {
+            state.activePresets.push(presetName);
+          }
         }
       }
-    }
-  } else {
-    console.log('\x1b[36m%s\x1b[0m', '=== Applying Presets (Absolute Mode) ===');
+    } else {
+      if (rawKey === targetAgents[0]) {
+        console.log('\x1b[36m%s\x1b[0m', '=== Applying Presets (Absolute Mode) ===');
+      }
 
-    /** @type {string[]} */
-    const newActive = [];
-    for (const presetName of presetArgs) {
-      const presetPath = path.join(PRESETS_DIR, `${presetName}.md`);
-      if (!fs.existsSync(presetPath)) {
-        console.error(`\x1b[31mError: Preset file not found for "${presetName}" at ${presetPath}\x1b[0m`);
-        process.exit(1);
+      /** @type {string[]} */
+      const newActive = [];
+      for (const presetName of presetArgs) {
+        const presetPath = path.join(PRESETS_DIR, `${presetName}.md`);
+        if (!fs.existsSync(presetPath)) {
+          console.error(`\x1b[31mError: Preset file not found for "${presetName}" at ${presetPath}\x1b[0m`);
+          process.exit(1);
+        }
+        if (!newActive.includes(presetName)) {
+          newActive.push(presetName);
+        }
       }
-      if (!newActive.includes(presetName)) {
-        newActive.push(presetName);
-      }
+      state.activePresets = newActive;
     }
-    state.activePresets = newActive;
   }
 
   // Save the updated state
-  saveState(state);
-  console.log(`\x1b[90mActive presets in state:\x1b[0m ${state.activePresets.join(', ') || 'none'}`);
+  saveState(multiState);
+
+  for (const rawKey of targetAgents) {
+    const canonicalKey = getAgentConfigKey(rawKey);
+    const state = multiState[canonicalKey];
+    console.log(`\x1b[90mActive presets in state for "${canonicalKey}":\x1b[0m ${state.activePresets.join(', ') || 'none'}`);
+  }
 
   // Synchronize
   syncState();
@@ -809,22 +1017,29 @@ function delegateToSkillsCLI(command, args = []) {
 }
 
 module.exports = {
-  setTestEnv,
+  // Public API
   collect,
   usePresets,
-  syncState,
   listPresets,
   showStatus,
-  parseFrontmatter,
-  resolveFinalSkills,
-  loadState,
-  saveState,
-  loadSkillsFromPresetDirect,
-  loadSkillsFromPreset,
-  getXdgConfigHome,
-  getXdgStateHome,
-  getXdgDataHome,
-  delegate: delegateToSkillsCLI,
-  cleanRemovedSkillsAndPresets,
-  getPaths: () => ({ AGENTS_DIR, SKILLS_DIR, LIBRARY_DIR, PRESETS_DIR, STATE_FILE })
+  delegateToSkills: delegateToSkillsCLI,
+
+  // Namespace for tests and debugging
+  tests: {
+    setTestEnv,
+    parseFrontmatter,
+    resolveFinalSkills,
+    loadState,
+    saveState,
+    loadSkillsFromPresetDirect,
+    loadSkillsFromPreset,
+    getXdgConfigHome,
+    getXdgStateHome,
+    getXdgDataHome,
+    SUPPORTED_AGENTS,
+    getAgentSkillsDir,
+    getAgentConfigKey,
+    cleanRemovedSkillsAndPresets,
+    getPaths: () => ({ AGENTS_DIR, SKILLS_DIR, LIBRARY_DIR, PRESETS_DIR, STATE_FILE })
+  }
 };

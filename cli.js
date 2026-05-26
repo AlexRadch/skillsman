@@ -95,7 +95,7 @@ function ensureSkillsLink() {
  * @returns {void}
  */
 function delegateToSkillsCLI(command, args = []) {
-  skillsman.delegate(command, args);
+  skillsman.delegateToSkills(command, args);
 }
 
 /**
@@ -106,15 +106,17 @@ function main() {
   program
     .name(pkg.name)
     .description(pkg.description)
-    .version(pkg.version);
+    .version(pkg.version)
+    .option('-a, --agent <agent...>', 'Target specific AI agents (space-separated or repeated)');
 
   // === NATIVE SKILLSMAN PRESET COMMANDS ===
 
   program
     .command('collect')
-    .description('Scan ~/.agents/skills/ for physical skills, collect them to library, create symlinks and presets')
+    .description('Scan active directories for physical skills, collect them to library, create symlinks and presets')
     .action(() => {
-      skillsman.collect();
+      const opts = program.opts();
+      skillsman.collect(opts.agent);
     });
 
   program
@@ -129,7 +131,8 @@ function main() {
     .command('status')
     .description('Show active presets and current projection links')
     .action(() => {
-      skillsman.showStatus();
+      const opts = program.opts();
+      skillsman.showStatus(opts.agent);
     });
 
   program
@@ -141,11 +144,8 @@ function main() {
        * @param {string[]} presets
        */
       (presets) => {
-        if (!presets || presets.length === 0) {
-          skillsman.syncState();
-        } else {
-          skillsman.usePresets(presets);
-        }
+        const opts = program.opts();
+        skillsman.usePresets(presets, opts.agent);
       }
     );
 
@@ -157,7 +157,8 @@ function main() {
        * @param {string[]} presets
        */
       (presets) => {
-        skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '+' + p));
+        const opts = program.opts();
+        skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '+' + p), opts.agent);
       }
     );
 
@@ -169,7 +170,8 @@ function main() {
        * @param {string[]} presets
        */
       (presets) => {
-        skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '-' + p));
+        const opts = program.opts();
+        skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '-' + p), opts.agent);
       }
     );
 

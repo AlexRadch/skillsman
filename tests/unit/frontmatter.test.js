@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
-const { parseFrontmatter } = require('../../index');
+const { parseFrontmatter } = require('../../index').tests;
 
 describe('Frontmatter Parser Unit Tests', () => {
   it('should parse standard YAML frontmatter correctly', () => {

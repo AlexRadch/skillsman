@@ -4,9 +4,27 @@ This document outlines the planned features, enhancements, and architectural mil
 
 ---
 
+## ✅ Completed
+
+### 🤖 Target Specific Agents (Global Level)
+
+* Implemented `-a, --agent <agent...>` global Commander option (variadic, space-separated or repeated flags).
+* `SUPPORTED_AGENTS` registry covers 50+ agents mapped to their canonical XDG skill directories.
+* `state.json` transitioned to per-agent multi-agent structure; each agent tracks its own `activePresets`, `alwaysPresets`, and `neverPresets` independently.
+* `collect()`, `showStatus()`, and `usePresets()` target specific agents when `-a` is provided, or operate globally across all agents otherwise.
+* Agent key validation: passing an unrecognised agent name (including comma-joined strings like `replit,aider-desk`) prints `Error: Invalid agent: <agent>` to stderr and exits with code 1.
+
+---
+
 ## 🎯 Short-Term Goals (v0+)
 
-* *Planning in progress (minor fixes, stabilization)*
+### 1. 📁 Workspace & Project-Level Skills
+
+* Enable local project skill management and workspace isolation (currently all operations are performed at the user/global level).
+
+### 2. 🎯 Target Specific Agents (Project Level)
+
+* Support targeting specific agents (e.g., `claude-code`, `codex`) at the local project/workspace level.
 
 ---
 
@@ -19,6 +37,10 @@ This document outlines the planned features, enhancements, and architectural mil
   * **Bash** (`~/.bashrc`)
   * **Zsh** (`~/.zshrc`)
   * **PowerShell** (Windows profile script)
+
+### 2. 🔌 Refined Programmatic API
+
+* Clean up the exported API surface, standardizing the public namespace while grouping test/debug functions inside a nested module space.
 
 ---
 

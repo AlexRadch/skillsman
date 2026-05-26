@@ -2,7 +2,7 @@ const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
-const { setTestEnv, resolveFinalSkills, loadSkillsFromPreset, getPaths } = require('../../index');
+const { setTestEnv, resolveFinalSkills, loadSkillsFromPreset, getPaths, loadState, saveState } = require('../../index').tests;
 
 describe('DFS Preset Resolver Unit Tests', () => {
   const sandboxPath = path.join(__dirname, '..', 'sandbox-unit');
@@ -93,5 +93,33 @@ skills:
       Array.from(res.finalSkills).sort(),
       ['skillChild', 'skillGrandchild', 'skillParent'].sort()
     );
+  });
+
+  it('should return a valid multi-agent state structure with default initialized', () => {
+    const state = loadState();
+    assert.ok(state && typeof state === 'object');
+    assert.ok(state['default']);
+    assert.deepStrictEqual(state['default'].activePresets, []);
+  });
+
+  it('should successfully save and load custom multi-agent structures', () => {
+    const state = loadState();
+    state['config_agents'] = {
+      activePresets: ['custom-preset'],
+      alwaysPresets: ['always'],
+      neverPresets: ['never']
+    };
+    saveState(state);
+
+    const reloaded = loadState();
+    assert.ok(reloaded['config_agents']);
+    assert.deepStrictEqual(reloaded['config_agents'].activePresets, ['custom-preset']);
+  });
+
+  it('should fall back to default agent states if state.json is corrupted or invalid', () => {
+    fs.writeFileSync(paths.STATE_FILE, '{ corrupted json : ', 'utf8');
+    const state = loadState();
+    assert.ok(state['default']);
+    assert.deepStrictEqual(state['default'].activePresets, []);
   });
 });

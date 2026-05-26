@@ -3,7 +3,9 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
-const { setTestEnv, collect, usePresets, syncState, loadState, saveState, getPaths } = require('../../index');
+const skillsman = require('../../index');
+const { collect, usePresets } = skillsman;
+const { setTestEnv, loadState, saveState, getPaths } = skillsman.tests;
 
 describe('CLI Integration Tests', () => {
   const realTestsDir = fs.realpathSync(path.join(__dirname, '..'));
@@ -77,14 +79,14 @@ skills:
     assert.ok(!fs.existsSync(path.join(paths.SKILLS_DIR, 'test-skill-2'))); // Blacklisted!
 
     // Verify State.json was updated
-    let state = loadState();
+    let state = loadState()['default'];
     assert.deepStrictEqual(state.activePresets, ['presetA']);
   });
 
   it('3. should support incremental activation without linking blacklisted skills', () => {
     usePresets(['+presetB']);
     
-    let state = loadState();
+    let state = loadState()['default'];
     assert.deepStrictEqual(state.activePresets, ['presetA', 'presetB']);
     assert.ok(!fs.existsSync(path.join(paths.SKILLS_DIR, 'test-skill-2'))); // Still blacklisted!
   });
@@ -92,7 +94,7 @@ skills:
   it('4. should support incremental deactivation and keep "always" presets links intact', () => {
     usePresets(['-presetA']);
 
-    let state = loadState();
+    let state = loadState()['default'];
     assert.deepStrictEqual(state.activePresets, ['presetB']);
     assert.ok(!fs.existsSync(path.join(paths.SKILLS_DIR, 'test-skill-1'))); // Removed!
     assert.ok(fs.existsSync(path.join(paths.SKILLS_DIR, 'always-skill'))); // Always stays!
@@ -100,11 +102,11 @@ skills:
 
   it('5. should synchronize successfully when blacklist is cleared', () => {
     let state = loadState();
-    state.neverPresets = [];
+    state['default'].neverPresets = [];
     saveState(state);
 
-    // Call syncState directly to force a sync with current state
-    syncState();
+    // Call usePresets directly to force a sync with current state
+    usePresets();
 
     // Now test-skill-2 is NOT blacklisted anymore! It should exist!
     assert.ok(fs.existsSync(path.join(paths.SKILLS_DIR, 'test-skill-2')));
@@ -112,11 +114,11 @@ skills:
 
   it('6. should sync correctly when state.json is modified manually followed by syncState()', () => {
     let state = loadState();
-    state.activePresets = ['presetA', 'presetB'];
+    state['default'].activePresets = ['presetA', 'presetB'];
     saveState(state);
 
-    // Call syncState() to trigger sync
-    syncState();
+    // Call usePresets() to trigger sync
+    usePresets();
 
     // Now test-skill-1 should be linked again!
     assert.ok(fs.existsSync(path.join(paths.SKILLS_DIR, 'test-skill-1')));
@@ -159,7 +161,7 @@ skills:
 ---`, 'utf8');
 
     let state = loadState();
-    state.activePresets = ['missingPreset'];
+    state['default'].activePresets = ['missingPreset'];
     saveState(state);
 
     let output = '';
@@ -167,7 +169,7 @@ skills:
     console.error = (msg) => { output += msg; };
 
     try {
-      syncState();
+      usePresets();
     } finally {
       console.error = originalConsoleError;
     }
@@ -177,8 +179,8 @@ skills:
 
   it('11. should output a warning if a blacklisted never-preset skill remains physically present as a folder in active zone', () => {
     let state = loadState();
-    state.activePresets = ['presetB'];
-    state.neverPresets = ['never'];
+    state['default'].activePresets = ['presetB'];
+    state['default'].neverPresets = ['never'];
     saveState(state);
 
     const activeSkill2Path = path.join(paths.SKILLS_DIR, 'test-skill-2');
@@ -194,7 +196,7 @@ skills:
     console.warn = (msg) => { output += msg; };
 
     try {
-      syncState();
+      usePresets();
     } finally {
       console.warn = originalConsoleWarn;
     }
@@ -204,8 +206,8 @@ skills:
 
   it('12. should NOT output any warning if a physical folder exists in active zone but is unrelated to active or blacklisted presets', () => {
     let state = loadState();
-    state.activePresets = ['presetB'];
-    state.neverPresets = ['never'];
+    state['default'].activePresets = ['presetB'];
+    state['default'].neverPresets = ['never'];
     saveState(state);
 
     const activeUnrelatedPath = path.join(paths.SKILLS_DIR, 'unrelated-physical-folder');
@@ -220,7 +222,7 @@ skills:
     console.error = (msg) => { output += msg; };
 
     try {
-      syncState();
+      usePresets();
     } finally {
       console.warn = originalConsoleWarn;
       console.error = originalConsoleError;
@@ -289,10 +291,10 @@ skills:
 
     // 5. Set the preset as active and sync state
     let state = loadState();
-    state.activePresets = ['mismatchPreset'];
+    state['default'].activePresets = ['mismatchPreset'];
     saveState(state);
 
-    syncState();
+    usePresets();
 
     // 6. Verify that ALL stale, cross-linked, and cyclic links were safely resolved and updated
     assert.ok(fs.existsSync(staleLinkPath));
@@ -382,6 +384,126 @@ skills:
         const target = fs.readlinkSync(linkPath);
         assert.strictEqual(path.resolve(target), path.resolve(cliPath), `Unix symlink for ${cmdName} fails to point to cli.js`);
       }
+    }
+  });
+
+  it('15. should output correct header log and active presets log when usePresets() is called with empty arguments', () => {
+    let output = '';
+    const originalConsoleLog = console.log;
+    console.log = (...args) => {
+      output += args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ') + '\n';
+    };
+
+    try {
+      usePresets();
+    } finally {
+      console.log = originalConsoleLog;
+    }
+
+    assert.ok(output.includes('=== Synchronizing Presets (State Sync Mode) ==='));
+    assert.ok(output.includes('Active presets in state for'));
+  });
+
+  it('16. should support targeting specific agents using the -a/--agent option', () => {
+    usePresets(['presetA'], ['replit']);
+
+    const state = loadState();
+    assert.ok(state['config_agents']);
+    assert.deepStrictEqual(state['config_agents'].activePresets, ['presetA']);
+
+    const configAgentsDir = path.join(sandboxPath, '.config', 'agents', 'skills');
+    assert.ok(fs.existsSync(configAgentsDir));
+    assert.ok(fs.existsSync(path.join(configAgentsDir, 'test-skill-1')));
+    assert.ok(fs.existsSync(path.join(configAgentsDir, 'always-skill')));
+  });
+
+  it('17. should support targeting multiple agents via comma-separated list or repeated flags', () => {
+    usePresets(['presetB'], ['replit', 'aider-desk']);
+
+    const state = loadState();
+    assert.ok(state['config_agents']);
+    assert.ok(state['aider-desk']);
+    assert.deepStrictEqual(state['config_agents'].activePresets, ['presetB']);
+    assert.deepStrictEqual(state['aider-desk'].activePresets, ['presetB']);
+
+    const aiderDeskDir = path.join(sandboxPath, '.aider-desk', 'skills');
+    assert.ok(fs.existsSync(aiderDeskDir));
+    assert.ok(fs.existsSync(path.join(aiderDeskDir, 'always-skill')));
+  });
+
+  it('18. should support showing status for multiple specific agents', () => {
+    let output = '';
+    const originalConsoleLog = console.log;
+    console.log = (...args) => {
+      output += args.map(arg => typeof arg === 'string' ? arg : JSON.stringify(arg)).join(' ') + '\n';
+    };
+
+    try {
+      skillsman.showStatus(['replit', 'aider-desk']);
+    } finally {
+      console.log = originalConsoleLog;
+    }
+
+    assert.ok(output.includes('=== Current Preset State for agent "config_agents" ==='));
+    assert.ok(output.includes('=== Current Preset State for agent "aider-desk" ==='));
+  });
+
+  it('19. should parse space-separated and repeated --agent flags via Commander CLI subprocess', () => {
+    const cliPath = path.resolve(__dirname, '..', '..', 'cli.js');
+
+    execSync(`node "${cliPath}" use presetA -a replit aider-desk -a default`, {
+      env: {
+        ...process.env,
+        XDG_CONFIG_HOME: path.join(sandboxPath, 'config'),
+        XDG_STATE_HOME: path.join(sandboxPath, 'state'),
+        XDG_DATA_HOME: path.join(sandboxPath, 'data'),
+        APPDATA: path.join(sandboxPath, 'config'),
+        LOCALAPPDATA: path.join(sandboxPath, 'state'),
+        USERPROFILE: sandboxPath,
+        HOME: sandboxPath
+      }
+    });
+
+    const state = loadState();
+    assert.ok(state['config_agents']);
+    assert.ok(state['aider-desk']);
+    assert.ok(state['default']);
+    assert.deepStrictEqual(state['config_agents'].activePresets, ['presetA']);
+    assert.deepStrictEqual(state['aider-desk'].activePresets, ['presetA']);
+    assert.deepStrictEqual(state['default'].activePresets, ['presetA']);
+  });
+
+  it('20. should exit with code 1 and print "Error: Invalid agent" when comma-joined agent names are passed', () => {
+    const cliPath = path.resolve(__dirname, '..', '..', 'cli.js');
+    const sandboxEnv = {
+      ...process.env,
+      XDG_CONFIG_HOME: path.join(sandboxPath, 'config'),
+      XDG_STATE_HOME: path.join(sandboxPath, 'state'),
+      XDG_DATA_HOME: path.join(sandboxPath, 'data'),
+      APPDATA: path.join(sandboxPath, 'config'),
+      LOCALAPPDATA: path.join(sandboxPath, 'state'),
+      USERPROFILE: sandboxPath,
+      HOME: sandboxPath
+    };
+
+    // Case 1: "-a replit,aider-desk" — no spaces around comma
+    try {
+      execSync(`node "${cliPath}" status -a replit,aider-desk`, { env: sandboxEnv, stdio: 'pipe' });
+      assert.fail('Should have exited with code 1 for agent "replit,aider-desk"');
+    } catch (err) {
+      assert.strictEqual(err.status, 1);
+      const stderr = err.stderr.toString();
+      assert.ok(stderr.includes('Error: Invalid agent: replit,aider-desk'), `Expected error in stderr, got: ${stderr}`);
+    }
+
+    // Case 2: "-a replit   ,   aider-desk" — spaces around comma (Commander passes as one token)
+    try {
+      execSync(`node "${cliPath}" status -a "replit   ,   aider-desk"`, { env: sandboxEnv, stdio: 'pipe' });
+      assert.fail('Should have exited with code 1 for agent "replit   ,   aider-desk"');
+    } catch (err) {
+      assert.strictEqual(err.status, 1);
+      const stderr = err.stderr.toString();
+      assert.ok(stderr.includes('Error: Invalid agent:'), `Expected error in stderr, got: ${stderr}`);
     }
   });
 });

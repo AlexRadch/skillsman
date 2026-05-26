@@ -50,6 +50,11 @@ Full coding conventions are documented in [**`docs/developer_guide.md`**](docs/d
 * Use `node:test` + `node:assert`. No third-party test frameworks.
 * Call `setTestEnv` in test hooks. Never touch `~/.agents/skills/` in tests.
 
+### 5. Prioritize Native Library APIs over Workarounds
+
+* **Mandatory Documentation Check**: Before proposing or writing custom arguments preprocessing, helper wrappers, or workaround implementations, the AI agent **MUST** thoroughly read and analyze the official documentation/API specification of the library in use (e.g., `commander`).
+* Always prefer native features (such as Commander's Variadic Options) over custom scripting code.
+
 ---
 
 ## 🚀 Common Developer Commands

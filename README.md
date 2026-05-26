@@ -53,6 +53,7 @@ graph TD
 * 🔄 **Cycle-Safe DFS Traversal**: Resolving nested preset dependencies recursively using a cycle-safe Depth-First Search algorithm.
 * 🤝 **Conflict Resolution**: Preventing breaking linkages when multiple active presets share identical skill names.
 * 🚫 **Global Blacklist Priority**: Applying the designated `never.md` preset as a final filter block to prevent forbidden skills from projecting.
+* 🤖 **Multi-Agent Targeting**: Every preset command accepts `-a / --agent <agent...>` to operate independently on 50+ supported AI agents (`claude-code`, `cursor`, `codex`, `aider-desk`, …), each with its own isolated state and skill projection.
 
 ---
 
@@ -117,6 +118,89 @@ skillsman presets
     ```bash
     skillsman use
     ```
+
+### 5. Target Specific AI Agents
+
+Every preset command accepts the `-a / --agent` flag to operate on one or more specific agents instead of the default (`~/.agents/skills/`):
+
+```bash
+# Show status for claude-code and cursor
+skillsman status -a claude-code cursor
+
+# Activate "dev" preset for aider-desk only
+skillsman use dev -a aider-desk
+
+# Apply preset to multiple agents at once (space-separated or repeated flags)
+skillsman use planning -a replit aider-desk -a codex
+
+# Collect physical skills from a specific agent's directory
+skillsman collect -a cursor
+```
+
+> [!NOTE]
+> Agent names must exactly match the supported registry (e.g. `claude-code`, `cursor`, `aider-desk`). Comma-joined values like `replit,aider-desk` are rejected with `Error: Invalid agent: replit,aider-desk`.
+
+---
+
+## 🤖 Supported Agents
+
+Skills can be managed for any of these agents via the `-a / --agent` flag:
+
+| Agent | `--agent` | Global Path |
+| ----- | --------- | ----------- |
+| AiderDesk | `aider-desk` | `~/.aider-desk/skills/` |
+| Amp, Kimi Code CLI, Replit, Universal | `amp`, `kimi-cli`, `replit`, `universal` | `~/.config/agents/skills/` |
+| Antigravity | `antigravity` | `~/.gemini/antigravity/skills/` |
+| Augment | `augment` | `~/.augment/skills/` |
+| IBM Bob | `bob` | `~/.bob/skills/` |
+| Claude Code | `claude-code` | `~/.claude/skills/` |
+| OpenClaw | `openclaw` | `~/.openclaw/skills/` |
+| Cline, Dexto, Warp | `cline`, `dexto`, `warp` | `~/.agents/skills/` |
+| CodeArts Agent | `codearts-agent` | `~/.codeartsdoer/skills/` |
+| CodeBuddy | `codebuddy` | `~/.codebuddy/skills/` |
+| Codemaker | `codemaker` | `~/.codemaker/skills/` |
+| Code Studio | `codestudio` | `~/.codestudio/skills/` |
+| Codex | `codex` | `~/.codex/skills/` |
+| Command Code | `command-code` | `~/.commandcode/skills/` |
+| Continue | `continue` | `~/.continue/skills/` |
+| Cortex Code | `cortex` | `~/.snowflake/cortex/skills/` |
+| Crush | `crush` | `~/.config/crush/skills/` |
+| Cursor | `cursor` | `~/.cursor/skills/` |
+| Deep Agents | `deepagents` | `~/.deepagents/agent/skills/` |
+| Devin for Terminal | `devin` | `~/.config/devin/skills/` |
+| Droid | `droid` | `~/.factory/skills/` |
+| Firebender | `firebender` | `~/.firebender/skills/` |
+| ForgeCode | `forgecode` | `~/.forge/skills/` |
+| Gemini CLI | `gemini-cli` | `~/.gemini/skills/` |
+| GitHub Copilot | `github-copilot` | `~/.copilot/skills/` |
+| Goose | `goose` | `~/.config/goose/skills/` |
+| Hermes Agent | `hermes-agent` | `~/.hermes/skills/` |
+| iFlow CLI | `iflow-cli` | `~/.iflow/skills/` |
+| Junie | `junie` | `~/.junie/skills/` |
+| Kilo Code | `kilo` | `~/.kilocode/skills/` |
+| Kiro CLI | `kiro-cli` | `~/.kiro/skills/` |
+| Kode | `kode` | `~/.kode/skills/` |
+| MCPJam | `mcpjam` | `~/.mcpjam/skills/` |
+| Mistral Vibe | `mistral-vibe` | `~/.vibe/skills/` |
+| Mux | `mux` | `~/.mux/skills/` |
+| OpenCode | `opencode` | `~/.config/opencode/skills/` |
+| OpenHands | `openhands` | `~/.openhands/skills/` |
+| Pi | `pi` | `~/.pi/agent/skills/` |
+| Qoder | `qoder` | `~/.qoder/skills/` |
+| Qwen Code | `qwen-code` | `~/.qwen/skills/` |
+| Rovo Dev | `rovodev` | `~/.rovodev/skills/` |
+| Roo Code | `roo` | `~/.roo/skills/` |
+| Tabnine CLI | `tabnine-cli` | `~/.tabnine/agent/skills/` |
+| Trae | `trae` | `~/.trae/skills/` |
+| Trae CN | `trae-cn` | `~/.trae-cn/skills/` |
+| Windsurf | `windsurf` | `~/.codeium/windsurf/skills/` |
+| Zencoder | `zencoder` | `~/.zencoder/skills/` |
+| Neovate | `neovate` | `~/.neovate/skills/` |
+| Pochi | `pochi` | `~/.pochi/skills/` |
+| AdaL | `adal` | `~/.adal/skills/` |
+
+> [!NOTE]
+> Agents sharing the same global path (e.g. `amp`, `kimi-cli`, `replit`, `universal`) share a single entry in `state.json` under the key `config_agents`. Activating a preset for any of them updates the shared state.
 
 ---
 

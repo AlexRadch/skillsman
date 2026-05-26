@@ -40,7 +40,7 @@ describe('CLI Skills Delegation Integration Tests', () => {
     fs.mkdirSync(npmPrefixDir, { recursive: true });
 
     // Force skillsman API to use our sandboxed active skills dir matching the agents layout
-    skillsman.setTestEnv(agentsHome);
+    skillsman.tests.setTestEnv(agentsHome);
 
     // Prepare custom sandboxed environment
     testEnv = {
@@ -121,7 +121,7 @@ describe('CLI Skills Delegation Integration Tests', () => {
       throw err;
     }
 
-    const currentPaths = skillsman.getPaths();
+    const currentPaths = skillsman.tests.getPaths();
 
     // Verify it was downloaded into the sandboxed library
     const expectedLibraryDir = path.join(currentPaths.LIBRARY_DIR, 'sandboxed-local-skill');
@@ -197,7 +197,7 @@ describe('CLI Skills Delegation Integration Tests', () => {
       throw err;
     }
 
-    const currentPaths = skillsman.getPaths();
+    const currentPaths = skillsman.tests.getPaths();
 
     // Helper to wait until a file/folder is fully deleted on Windows due to asynchronous/laggy filesystem handles
     const assertDeletedWithRetry = (filePath, message) => {

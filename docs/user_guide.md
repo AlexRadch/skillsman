@@ -40,7 +40,37 @@ Welcome to the **skillsman** User Guide. This document provides a complete refer
 
 `skillsman` features a powerful, standard CLI based on the modern `commander` library. It maps the global executables `skillsman` and `skills` to `cli.js`, giving you access to both native preset management and delegated original commands.
 
-### 1. Native Preset Commands
+### Global Option: `-a / --agent <agent...>`
+
+All native preset commands (`collect`, `status`, `use`, `activate`, `deactivate`) accept a global `-a / --agent` flag that restricts the operation to specific AI agents:
+
+```bash
+# Single agent
+skillsman use dev -a claude-code
+
+# Multiple agents (space-separated in one flag)
+skillsman use dev -a replit aider-desk
+
+# Multiple agents (repeated flags)
+skillsman use planning -a replit -a codex -a cursor
+
+# Show status only for specific agents
+skillsman status -a claude-code cursor
+
+# Collect only from a specific agent directory
+skillsman collect -a aider-desk
+```
+
+When `-a` is omitted, commands operate on **all agents** present in `state.json` (or all 50+ supported agents for `collect`).
+
+> [!IMPORTANT]
+> Agent names must exactly match the `SUPPORTED_AGENTS` registry keys. Passing a comma-joined string (e.g. `-a replit,aider-desk`) is rejected immediately:
+> `Error: Invalid agent: replit,aider-desk`
+
+### Supported Agents
+
+The full registry (50+ agents) includes: `default`, `aider-desk`, `amp`, `antigravity`, `augment`, `bob`, `claude-code`, `cline`, `codex`, `command-code`, `continue`, `cursor`, `devin`, `gemini-cli`, `github-copilot`, `goose`, `junie`, `kilo`, `opencode`, `replit`, `roo`, `trae`, `windsurf`, `zencoder`, and many more.
+
 
 #### `skillsman presets` (alias: `ps`)
 
@@ -137,3 +167,30 @@ If a preset named `never.md` exists, any skill listed in it is strictly forbidde
 * 🎯 **Direct Exclusion Only**: Only skills directly and explicitly listed inside the `never` preset are excluded (it is parsed flatly without any recursive traversal of nested presets).
 * **CLI Warnings**: The CLI will warn you if a blacklisted skill was requested:
     `⚠ Skipped blacklisted skill: "seo" (defined in neverPresets)`
+
+### 🤖 Multi-Agent `state.json` Structure
+
+`state.json` is keyed by the **canonical agent config key** (not always the agent name you type — aliases are resolved). Each key tracks its own independent preset configuration:
+
+```json
+{
+  "default": {
+    "activePresets": ["dev"],
+    "alwaysPresets": ["always"],
+    "neverPresets": ["never"]
+  },
+  "aider-desk": {
+    "activePresets": ["planning"],
+    "alwaysPresets": ["always"],
+    "neverPresets": ["never"]
+  },
+  "config_agents": {
+    "activePresets": ["dev", "planning"],
+    "alwaysPresets": ["always"],
+    "neverPresets": ["never"]
+  }
+}
+```
+
+> [!NOTE]
+> Several agents share the same physical directory and therefore the same config key. For example `replit`, `amp`, `kimi-cli`, and `universal` all map to `config_agents` (`.config/agents/skills/`). Activating a preset on any of them updates the shared key.

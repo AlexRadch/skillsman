@@ -1,7 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const { getXdgConfigHome, getXdgStateHome, getXdgDataHome } = require('../../index');
+const { getXdgConfigHome, getXdgStateHome, getXdgDataHome, getAgentSkillsDir, getAgentConfigKey } = require('../../index').tests;
 
 describe('XDG Path Resolution Unit Tests', () => {
   const dummyHome = '/user/alex';
@@ -81,6 +81,67 @@ describe('XDG Path Resolution Unit Tests', () => {
       const env = {};
       const resolved = getXdgDataHome('linux', env, dummyHome);
       assert.strictEqual(resolved, path.join(dummyHome, '.local', 'share'));
+    });
+  });
+
+  describe('getAgentSkillsDir', () => {
+    it('should resolve the default path for default key', () => {
+      const resolved = getAgentSkillsDir('default', dummyHome);
+      assert.strictEqual(resolved, path.join(dummyHome, '.agents', 'skills'));
+    });
+
+    it('should map cline, dexto, warp to default path', () => {
+      assert.strictEqual(getAgentSkillsDir('cline', dummyHome), path.join(dummyHome, '.agents', 'skills'));
+      assert.strictEqual(getAgentSkillsDir('dexto', dummyHome), path.join(dummyHome, '.agents', 'skills'));
+      assert.strictEqual(getAgentSkillsDir('warp', dummyHome), path.join(dummyHome, '.agents', 'skills'));
+    });
+
+    it('should resolve correct path for aider-desk', () => {
+      const resolved = getAgentSkillsDir('aider-desk', dummyHome);
+      assert.strictEqual(resolved, path.join(dummyHome, '.aider-desk', 'skills'));
+    });
+
+    it('should resolve correct path for claude-code', () => {
+      const resolved = getAgentSkillsDir('claude-code', dummyHome);
+      assert.strictEqual(resolved, path.join(dummyHome, '.claude', 'skills'));
+    });
+
+    it('should fallback to default path for unknown agent keys', () => {
+      const resolved = getAgentSkillsDir('non-existent-agent-xyz', dummyHome);
+      assert.strictEqual(resolved, path.join(dummyHome, '.agents', 'skills'));
+    });
+  });
+
+  describe('getAgentConfigKey', () => {
+    it('should map default, cline, dexto, warp to default config key', () => {
+      assert.strictEqual(getAgentConfigKey('default'), 'default');
+      assert.strictEqual(getAgentConfigKey('cline'), 'default');
+      assert.strictEqual(getAgentConfigKey('dexto'), 'default');
+      assert.strictEqual(getAgentConfigKey('warp'), 'default');
+    });
+
+    it('should map amp, kimi-cli, replit, universal to config_agents config key', () => {
+      assert.strictEqual(getAgentConfigKey('config_agents'), 'config_agents');
+      assert.strictEqual(getAgentConfigKey('amp'), 'config_agents');
+      assert.strictEqual(getAgentConfigKey('kimi-cli'), 'config_agents');
+      assert.strictEqual(getAgentConfigKey('replit'), 'config_agents');
+      assert.strictEqual(getAgentConfigKey('universal'), 'config_agents');
+    });
+
+    it('should preserve distinct agent keys like aider-desk', () => {
+      assert.strictEqual(getAgentConfigKey('aider-desk'), 'aider-desk');
+      assert.strictEqual(getAgentConfigKey('claude-code'), 'claude-code');
+    });
+  });
+
+  describe('shared config_agents paths', () => {
+    it('should map amp, kimi-cli, replit, universal to the same physical directory path', () => {
+      const expectedPath = path.join(dummyHome, '.config', 'agents', 'skills');
+      assert.strictEqual(getAgentSkillsDir('amp', dummyHome), expectedPath);
+      assert.strictEqual(getAgentSkillsDir('kimi-cli', dummyHome), expectedPath);
+      assert.strictEqual(getAgentSkillsDir('replit', dummyHome), expectedPath);
+      assert.strictEqual(getAgentSkillsDir('universal', dummyHome), expectedPath);
+      assert.strictEqual(getAgentSkillsDir('config_agents', dummyHome), expectedPath);
     });
   });
 });

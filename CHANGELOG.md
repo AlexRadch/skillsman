@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Global Multi-Agent Support**: Transitioned the layout of `state.json` to an isolated multi-agent format. Commands dynamically target specific agents, managing active presets and symlinks independently per agent.
+- **Commander `--agent` option**: Introduced `-a, --agent <agent...>` native Commander variadic option in `cli.js` supporting space-separated lists and repeated flags (`-a replit aider-desk -a universal`), matching the original utility.
+- **Dynamic Multi-Agent Actions**: Overhauled `usePresets()`, `syncState()`, `collect()`, and `showStatus()` to run dynamically based on targeted agents or globally across all 50+ configured agent directories.
+- **Cleaned Public API**: Completely encapsulated low-level `syncState` and testing helpers into the private `tests` namespace in `index.js`, keeping the main exported API lightweight and focused on standard user commands.
+- **Agent Key Validation**: `collect()`, `showStatus()`, and `usePresets()` now validate every supplied `-a` agent key against the `SUPPORTED_AGENTS` registry. An unrecognised key (including comma-joined strings such as `replit,aider-desk`) immediately prints `Error: Invalid agent: <agent>` to stderr and exits with code 1.
+
 ## [0.2.0] - 2026-05-26
 
 ### Added
