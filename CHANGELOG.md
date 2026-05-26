@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-26
+
 ### Added
 
 - **Global Multi-Agent Support**: Transitioned the layout of `state.json` to an isolated multi-agent format. Commands dynamically target specific agents, managing active presets and symlinks independently per agent.
