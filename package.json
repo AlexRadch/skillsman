@@ -1,6 +1,6 @@
 {
   "name": "skillsman",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "author": "Alexander Radchenko <radchenkosasha@gmail.com>",
   "description": "CLI manager for AI agent skills presets",
   "main": "./index.js",

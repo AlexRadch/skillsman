@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-05-26
+
 ### Added
 
 - **Modular API / CLI Separation**: Refactored `index.js` into a lightweight, pure programmatic API. Removed all `commander` imports and CLI logic, making `require('skillsman')` extremely fast and clean of console artifacts.
