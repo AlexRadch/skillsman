@@ -6,7 +6,15 @@ This document outlines the planned features, enhancements, and architectural mil
 
 ## 🎯 Short-Term Goals (v0+)
 
-### 1. 📂 Local (Project) Presets Support
+### 1. 🪄 Smart Preset Auto-Creation
+
+* Implement automatic intelligent preset creation. Analyze workspace structure or guide the user interactively to simplify preset setups.
+
+### 2. 🤖 Dedicated skillsman Skill for AI Agents
+
+* Create a native `skillsman` skill to instruct AI agents on how to use `skillsman` to configure and activate presets automatically on user demand.
+
+### 3. 📂 Local (Project) Presets Support
 
 * Add support for local project-specific presets inside `.skillsman/presets/` that can overlay or extend global presets.
 
