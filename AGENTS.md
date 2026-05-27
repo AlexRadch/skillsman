@@ -59,6 +59,7 @@ Full coding conventions are documented in [**`docs/developer_guide.md`**](docs/d
 
 * **Changelog Validation**: Before recommending, executing, or automating any `npm version` bump, the agent **MUST** ensure the `CHANGELOG.md` is fully populated with a comprehensive summary description and detailed `### Added`/`### Changed`/`### Fixed` sections.
 * **Never** leave version sections empty in `CHANGELOG.md`.
+* **User-Facing Changes Only**: Document only user-facing features, bug fixes, configuration additions, and API/CLI changes. **Never** include internal developer instructions, changes to `AGENTS.md`, or test-suite setup modifications in the public `CHANGELOG.md`.
 * Always remind the user to update the changelog details first before performing a version increment.
 
 ---

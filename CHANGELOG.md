@@ -15,10 +15,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This patch release updates documentation, backporting comprehensive release note summaries and changelog details for versions 0.1.2 through 0.4.0, and updates the roadmap with smart preset auto-creation and AI agent integration targets.
 
-### Added
-
-- **AI Agent Guidance Rules**: Added strict AI agent versioning, changelog validation, and communication style instructions in `AGENTS.md`.
-
 ### Changed
 
 - **Roadmap Update**: Added `Smart Preset Auto-Creation` and `Dedicated skillsman Skill for AI Agents` as active short-term goals.
