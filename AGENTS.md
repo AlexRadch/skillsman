@@ -34,11 +34,11 @@ Full coding conventions are documented in [**`docs/developer_guide.md`**](docs/d
 * Ensure the IDE has zero TypeScript warnings before finishing your turn.
 * Do **not** install transpilers (`tsc`, `ts-node`, `esbuild`, `tsx`).
 
-### 2. Subprocess Delegation without `npx`
+### 2. Subprocess Delegation and NPX Fallback
 
-* Never execute `npx skills` at runtime.
-* Resolve the `skills` binary via `require.resolve('skills/package.json')` and spawn `node` directly.
-* Keep `skills` as a production dependency in `package.json`.
+* Prefer direct execution of `skills` via `require.resolve('skills/package.json')` and spawn `node` directly for maximum speed.
+* If `skills` is not resolved locally, fall back to executing `npx skills` safely.
+* Keep `skills` as a development dependency (`devDependencies`) in `package.json` to keep tests working.
 
 ### 3. Safe Error Catching
 
@@ -61,13 +61,3 @@ Full coding conventions are documented in [**`docs/developer_guide.md`**](docs/d
 * **Never** leave version sections empty in `CHANGELOG.md`.
 * **User-Facing Changes Only**: Document only user-facing features, bug fixes, configuration additions, and API/CLI changes. **Never** include internal developer instructions, changes to `AGENTS.md`, or test-suite setup modifications in the public `CHANGELOG.md`.
 * Always remind the user to update the changelog details first before performing a version increment.
-
----
-
-## 🚀 Common Developer Commands
-
-```bash
-npm test                               # Run full test suite
-node --test --watch                    # Watch mode
-node --test --experimental-test-coverage  # Coverage report
-```

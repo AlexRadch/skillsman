@@ -11,13 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Fallback execution**: Spawning `skills` through local package resolution now falls back safely to execution via `npx` if the local `skills` package is not found, preventing execution crashes.
+- **Shim auto-healing removal**: Removed the global CLI shim self-healing script (`ensureSkillsLink`) to avoid unauthorized writes or unnecessary checks on startup.
+
+### Fixed
+
+- **Resilient Symlink Synchronization**: Configured synchronization mechanism to gracefully purge dead and mismatched active symlinks even when the source skill is missing from the local library folder.
+- **Robust Initialization Check**: Enabled dynamic safety checks during state synchronization and preset listing to prevent runtime exceptions when the target library or presets directory does not exist.
+- **Local Agent Path Resolution**: Fixed path resolution to strictly resolve local project paths (e.g. `./.agents/skills`) instead of global ones when commands are executed in local project scope (without `-g / --global`).
+- **Unified Local State Key Mapping**: Configured all agents sharing the local `.agents/skills` directory to automatically map to the `default` configuration key when in local project scope, resolving potential overlaps. Added automatic key merging and conversion (`convertGlobalToLocalState`) when falling back from global state to local state.
+
 ## [0.4.1] - 2026-05-27
 
 This patch release updates documentation, backporting comprehensive release note summaries and changelog details for versions 0.1.2 through 0.4.0, and updates the roadmap with smart preset auto-creation and AI agent integration targets.
 
 ### Changed
 
-- **Roadmap Update**: Added `Smart Preset Auto-Creation` and `Dedicated skillsman Skill for AI Agents` as active short-term goals.
 - **Changelog Enrichment**: Backfilled missing release summaries and detailed change entries for all historical releases to maintain precise documentation history.
 
 ## [0.4.0] - 2026-05-27

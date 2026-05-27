@@ -322,70 +322,6 @@ skills:
     );
   });
 
-  it('14. should automatically self-heal and repair global command shims on execution', () => {
-    const isWindows = process.platform === 'win32';
-    const fakeNpmBinDir = path.join(sandboxPath, 'fake-npm-bin');
-    fs.mkdirSync(fakeNpmBinDir, { recursive: true });
-
-    // 1. Pre-create the fake "source" shims representing the globals NPM creates for skillsman
-    if (isWindows) {
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'skillsman'), 'node index.js "$@"', 'utf8');
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'skillsman.cmd'), 'node.exe index.js %*', 'utf8');
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'skillsman.ps1'), 'node.exe index.js $args', 'utf8');
-
-      // Pre-create the "stale" or "collision" shims pointing to the wrong package for both skills and add-skill
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'skills'), 'node wrong.js "$@"', 'utf8');
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'skills.cmd'), 'node.exe wrong.js %*', 'utf8');
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'skills.ps1'), 'node.exe wrong.js $args', 'utf8');
-
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'add-skill'), 'node wrong.js "$@"', 'utf8');
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'add-skill.cmd'), 'node.exe wrong.js %*', 'utf8');
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'add-skill.ps1'), 'node.exe wrong.js $args', 'utf8');
-    } else {
-      // Unix: pre-create regular files to simulate collisions (which should be replaced by symlinks)
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'skills'), 'legacy file content', 'utf8');
-      fs.writeFileSync(path.join(fakeNpmBinDir, 'add-skill'), 'legacy file content', 'utf8');
-    }
-
-    const cliPath = path.resolve(__dirname, '..', '..', 'cli.js');
-
-    // 2. Spawn cli.js in a subprocess, setting the sandboxed testing directory
-    execSync(`node "${cliPath}" presets`, {
-      env: {
-        ...process.env,
-        SKILLSMAN_SHIM_TEST_DIR: fakeNpmBinDir
-      },
-      stdio: 'pipe'
-    });
-
-    // 3. Verify shims are healed!
-    if (isWindows) {
-      const cmdContent = fs.readFileSync(path.join(fakeNpmBinDir, 'skills.cmd'), 'utf8');
-      const ps1Content = fs.readFileSync(path.join(fakeNpmBinDir, 'skills.ps1'), 'utf8');
-      const bashContent = fs.readFileSync(path.join(fakeNpmBinDir, 'skills'), 'utf8');
-
-      assert.ok(cmdContent.includes('cli.js'), 'skills.cmd failed to self-heal');
-      assert.ok(ps1Content.includes('cli.js'), 'skills.ps1 failed to self-heal');
-      assert.ok(bashContent.includes('cli.js'), 'skills failed to self-heal');
-
-      const addCmdContent = fs.readFileSync(path.join(fakeNpmBinDir, 'add-skill.cmd'), 'utf8');
-      const addPs1Content = fs.readFileSync(path.join(fakeNpmBinDir, 'add-skill.ps1'), 'utf8');
-      const addBashContent = fs.readFileSync(path.join(fakeNpmBinDir, 'add-skill'), 'utf8');
-
-      assert.ok(addCmdContent.includes('cli.js'), 'add-skill.cmd failed to self-heal');
-      assert.ok(addPs1Content.includes('cli.js'), 'add-skill.ps1 failed to self-heal');
-      assert.ok(addBashContent.includes('cli.js'), 'add-skill failed to self-heal');
-    } else {
-      for (const cmdName of ['skills', 'add-skill']) {
-        const linkPath = path.join(fakeNpmBinDir, cmdName);
-        const stats = fs.lstatSync(linkPath);
-
-        assert.ok(stats.isSymbolicLink(), `${cmdName} was not converted to a symlink`);
-        const target = fs.readlinkSync(linkPath);
-        assert.strictEqual(path.resolve(target), path.resolve(cliPath), `Unix symlink for ${cmdName} fails to point to cli.js`);
-      }
-    }
-  });
 
   it('15. should output correct header log and active presets log when usePresets() is called with empty arguments', () => {
     let output = '';
@@ -583,5 +519,77 @@ skills:
     } finally {
       process.chdir(originalCwd);
     }
+  });
+
+  it('24. should gracefully return and not crash when library or presets directory does not exist', () => {
+    // Isolate sandboxed test paths to non-existent ones
+    const originalPaths = {
+      PRESETS_DIR: skillsman.tests.getPaths().PRESETS_DIR,
+      LIBRARY_DIR: skillsman.tests.getPaths().LIBRARY_DIR
+    };
+    
+    // Set sandboxed environment to non-existent paths
+    skillsman.tests.setTestEnv(path.join(sandboxPath, 'non-existent-sandbox-dir'));
+    
+    try {
+      // Calling syncState should not throw and not crash
+      assert.doesNotThrow(() => {
+        skillsman.tests.resolveFinalSkills({ activePresets: ['presetA'], alwaysPresets: ['always'], neverPresets: ['never'] });
+        skillsman.tests.cleanRemovedSkillsAndPresets(['test-skill-1'], true);
+      });
+    } finally {
+      // Restore sandbox
+      skillsman.tests.setTestEnv(sandboxPath);
+    }
+  });
+
+  it('25. should clean up dead or mismatched active symlinks even if target is missing in library', () => {
+    // Ensure test environment directories exist
+    const currentPaths = skillsman.tests.getPaths();
+    const testLibraryDir = currentPaths.LIBRARY_DIR;
+    const testPresetsDir = currentPaths.PRESETS_DIR;
+    
+    if (!fs.existsSync(testLibraryDir)) {
+      fs.mkdirSync(testLibraryDir, { recursive: true });
+    }
+    if (!fs.existsSync(testPresetsDir)) {
+      fs.mkdirSync(testPresetsDir, { recursive: true });
+    }
+    
+    // Create an active skills directory for default agent
+    const defaultAgentSkillsDir = skillsman.tests.getAgentSkillsDir('default', true);
+    if (!fs.existsSync(defaultAgentSkillsDir)) {
+      fs.mkdirSync(defaultAgentSkillsDir, { recursive: true });
+    }
+    
+    // Create a dead symlink in active skills directory pointing to some non-existent path
+    const deadLinkPath = path.join(defaultAgentSkillsDir, 'test-dead-skill');
+    if (fs.existsSync(deadLinkPath)) {
+      try { fs.unlinkSync(deadLinkPath); } catch (e) {}
+    }
+    
+    const isWindows = process.platform === 'win32';
+    // Point dead link to a non-existent path in the library
+    fs.symlinkSync(path.join(testLibraryDir, 'test-dead-skill'), deadLinkPath, isWindows ? 'junction' : 'dir');
+    
+    // Update state to include 'test-dead-skill' as active/always preset
+    const state = loadState(true);
+    state['default'].activePresets = [];
+    state['default'].alwaysPresets = ['always'];
+    
+    // Create an 'always' preset file that includes 'test-dead-skill'
+    const alwaysPresetPath = path.join(testPresetsDir, 'always.md');
+    fs.writeFileSync(alwaysPresetPath, '---\nname: always\nskills:\n  - test-dead-skill\n---\n', 'utf8');
+    
+    saveState(state, true);
+    
+    // Now running syncState should notice that the link is dead/mismatched and DELETE it
+    // even though 'test-dead-skill' is not physically in the library!
+    skillsman.tests.resolveFinalSkills(state['default']);
+    // Call the internal syncState/usePresets logic
+    usePresets([], undefined, true);
+    
+    // Verify that the dead link was successfully cleaned up and deleted!
+    assert.ok(!fs.existsSync(deadLinkPath), 'dead/mismatched link should be cleaned up even if missing from library');
   });
 });

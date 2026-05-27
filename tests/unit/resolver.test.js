@@ -122,4 +122,39 @@ skills:
     assert.ok(state['default']);
     assert.deepStrictEqual(state['default'].activePresets, []);
   });
+
+  it('should fallback to global state and convert config_agents to default when isGlobal is false', () => {
+    const globalState = loadState(true);
+    globalState['config_agents'] = {
+      activePresets: ['preset1'],
+      alwaysPresets: ['always'],
+      neverPresets: ['never']
+    };
+    globalState['default'] = {
+      activePresets: ['preset2'],
+      alwaysPresets: ['always'],
+      neverPresets: ['never']
+    };
+    globalState['aider-desk'] = {
+      activePresets: ['preset3'],
+      alwaysPresets: ['always'],
+      neverPresets: ['never']
+    };
+    saveState(globalState, true);
+
+    const localStateFile = path.join(sandboxPath, '.agents', 'skillsman-state.json');
+    if (fs.existsSync(localStateFile)) {
+      try { fs.unlinkSync(localStateFile); } catch (e) {}
+    }
+
+    const localState = loadState(false);
+    
+    assert.ok(!localState['config_agents']);
+    assert.ok(localState['default']);
+    assert.ok(localState['default'].activePresets.includes('preset1'));
+    assert.ok(localState['default'].activePresets.includes('preset2'));
+    
+    assert.ok(localState['aider-desk']);
+    assert.deepStrictEqual(localState['aider-desk'].activePresets, ['preset3']);
+  });
 });

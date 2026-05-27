@@ -39,9 +39,8 @@ The core of `skillsman` is structured into two focused files:
 
 ### 1. [`cli.js`](../cli.js) (CLI Entry Point)
 
-Handles the command-line setup, Commander command registration, argument passing, and global shim management:
+Handles the command-line setup, Commander command registration, and argument passing:
 
-* **Self-Healing Link check (`ensureSkillsLink`)**: A 1.5ms check executed on startup to ensure global shims point to `skillsman`'s entry point.
 * **CLI Routing**: Resolves, validates, and forwards arguments cleanly to the programmatic API.
 
 ### 2. [`index.js`](../index.js) (Programmatic API)
@@ -78,17 +77,18 @@ The core logical module of the manager, containing:
 
 ## ⚙️ Coding Conventions
 
-### Subprocess Delegation without `npx`
+### Subprocess Delegation with NPX Fallback
 
-`skillsman` never invokes `npx skills` at runtime. Instead, the physical path of the bundled `skills` package is resolved via `require.resolve('skills/package.json')` and executed directly by Node:
+`skillsman` prefers executing the official `skills` package directly for maximum speed. It attempts to resolve the physical path of the bundled `skills` package locally via `require.resolve('skills/package.json')` and executes it directly:
 
 ```javascript
 const skillsPkgPath = require.resolve('skills/package.json');
-const skillsBinPath = path.join(path.dirname(skillsPkgPath), 'path/to/bin');
-spawnSync(process.execPath, [skillsBinPath, ...args], { stdio: 'inherit' });
+// ... Direct Node.js subprocess execution
 ```
 
-This avoids shell and network overhead entirely. The `skills` package is kept as a **production dependency** in `package.json` to guarantee resolution.
+If local resolution fails (e.g. in certain testing environments or when running outside the installation scope), `skillsman` gracefully falls back to executing the command via `npx skills`, ensuring that execution never crashes.
+
+This keeps command execution extremely fast while maintaining maximum runtime resilience. The `skills` package is kept as a **development dependency** to keep tests working.
 
 ### Safe Error Catching
 
@@ -154,4 +154,34 @@ To calculate code coverage using Node's native coverage engine:
 
 ```bash
 node --test --experimental-test-coverage
+```
+
+### Static Type & Markdown Linting
+
+To verify the entire codebase for type safety and markdown syntax compliance:
+
+#### 1. Code Typecheck (JavaScript & Tests)
+
+Verify type correctness, JSDoc annotations, and parameters across the entire codebase (configured globally via `jsconfig.json`):
+
+```bash
+npm run typecheck
+```
+
+This invokes the TypeScript compiler in typecheck-only (`noEmit`) mode.
+
+#### 2. Markdown Style Check
+
+Audit all Markdown documentation files for structural errors and formatting conventions (configured via `.markdownlint.json`):
+
+```bash
+npm run lint:md
+```
+
+#### 3. Unified Lint Run
+
+To run both checks consecutively:
+
+```bash
+npm run lint
 ```

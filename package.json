@@ -5,9 +5,7 @@
   "description": "CLI manager for AI agent skills presets",
   "main": "./index.js",
   "bin": {
-    "skillsman": "./cli.js",
-    "skills": "./cli.js",
-    "add-skill": "./cli.js"
+    "skillsman": "./cli.js"
   },
   "type": "commonjs",
   "license": "MIT",
@@ -100,11 +98,18 @@
   ],
   "scripts": {
     "test": "node --test",
+    "typecheck": "npx -p typescript tsc -p jsconfig.json",
+    "lint:md": "markdownlint \"**/*.md\" --ignore node_modules",
+    "lint": "npm run typecheck && npm run lint:md",
     "version": "node scripts/update-changelog.js && git add CHANGELOG.md"
   },
   "dependencies": {
     "commander": "^14.0.3",
-    "gray-matter": "^4.0.3",
+    "gray-matter": "^4.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "markdownlint-cli": "^0.48.0",
     "skills": "^1.5.7"
   }
 }

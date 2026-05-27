@@ -121,16 +121,23 @@ describe('XDG Path Resolution Unit Tests', () => {
     });
 
     it('should map amp, kimi-cli, replit, universal to config_agents config key', () => {
-      assert.strictEqual(getAgentConfigKey('config_agents'), 'config_agents');
-      assert.strictEqual(getAgentConfigKey('amp'), 'config_agents');
-      assert.strictEqual(getAgentConfigKey('kimi-cli'), 'config_agents');
-      assert.strictEqual(getAgentConfigKey('replit'), 'config_agents');
-      assert.strictEqual(getAgentConfigKey('universal'), 'config_agents');
+      assert.strictEqual(getAgentConfigKey('config_agents', true), 'config_agents');
+      assert.strictEqual(getAgentConfigKey('amp', true), 'config_agents');
+      assert.strictEqual(getAgentConfigKey('kimi-cli', true), 'config_agents');
+      assert.strictEqual(getAgentConfigKey('replit', true), 'config_agents');
+      assert.strictEqual(getAgentConfigKey('universal', true), 'config_agents');
     });
 
     it('should preserve distinct agent keys like aider-desk', () => {
-      assert.strictEqual(getAgentConfigKey('aider-desk'), 'aider-desk');
-      assert.strictEqual(getAgentConfigKey('claude-code'), 'claude-code');
+      assert.strictEqual(getAgentConfigKey('aider-desk', true), 'aider-desk');
+      assert.strictEqual(getAgentConfigKey('claude-code', true), 'claude-code');
+    });
+
+    it('should map replit, cursor, antigravity to default config key when isGlobal is false', () => {
+      assert.strictEqual(getAgentConfigKey('replit', false), 'default');
+      assert.strictEqual(getAgentConfigKey('cursor', false), 'default');
+      assert.strictEqual(getAgentConfigKey('antigravity', false), 'default');
+      assert.strictEqual(getAgentConfigKey('config_agents', false), 'default');
     });
   });
 
@@ -158,7 +165,7 @@ describe('XDG Path Resolution Unit Tests', () => {
 
     it('should resolve config_agents skills path relative to process.cwd() when isGlobal is false', () => {
       const resolved = getAgentSkillsDir('replit', false);
-      assert.strictEqual(resolved, path.join(process.cwd(), '.config', 'agents', 'skills'));
+      assert.strictEqual(resolved, path.join(process.cwd(), '.agents', 'skills'));
     });
   });
 });

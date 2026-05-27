@@ -30,7 +30,7 @@ function safeRealpath(p) {
 /**
  * Resolves standard XDG CONFIG HOME directory
  * @param {string} [platform] - The platform name
- * @param {NodeJS.ProcessEnv} [env] - Environment variables
+ * @param {any} [env] - Environment variables
  * @param {string} [home] - User home directory
  * @returns {string} The XDG CONFIG HOME path
  */
@@ -45,7 +45,7 @@ function getXdgConfigHome(platform = process.platform, env = process.env, home =
 /**
  * Resolves standard XDG STATE HOME directory
  * @param {string} [platform] - The platform name
- * @param {NodeJS.ProcessEnv} [env] - Environment variables
+ * @param {any} [env] - Environment variables
  * @param {string} [home] - User home directory
  * @returns {string} The XDG STATE HOME path
  */
@@ -60,7 +60,7 @@ function getXdgStateHome(platform = process.platform, env = process.env, home = 
 /**
  * Resolves standard XDG DATA HOME directory
  * @param {string} [platform] - The platform name
- * @param {NodeJS.ProcessEnv} [env] - Environment variables
+ * @param {any} [env] - Environment variables
  * @param {string} [home] - User home directory
  * @returns {string} The XDG DATA HOME path
  */
@@ -106,65 +106,65 @@ function getLibraryDir() {
   return LIBRARY_DIR;
 }
 
-/** @type {Record<string, { path: string, key: string }>} */
+/** @type {Record<string, { projectPath: string, globalPath: string, projectKey: string, globalKey: string }>} */
 const SUPPORTED_AGENTS = {
-  'default': { path: '.agents/skills', key: 'default' },
-  'config_agents': { path: '.config/agents/skills', key: 'config_agents' },
-  'aider-desk': { path: '.aider-desk/skills', key: 'aider-desk' },
-  'amp': { path: '.config/agents/skills', key: 'config_agents' },
-  'kimi-cli': { path: '.config/agents/skills', key: 'config_agents' },
-  'replit': { path: '.config/agents/skills', key: 'config_agents' },
-  'universal': { path: '.config/agents/skills', key: 'config_agents' },
-  'antigravity': { path: '.gemini/antigravity/skills', key: 'antigravity' },
-  'augment': { path: '.augment/skills', key: 'augment' },
-  'bob': { path: '.bob/skills', key: 'bob' },
-  'claude-code': { path: '.claude/skills', key: 'claude-code' },
-  'openclaw': { path: '.openclaw/skills', key: 'openclaw' },
-  'cline': { path: '.agents/skills', key: 'default' },
-  'dexto': { path: '.agents/skills', key: 'default' },
-  'warp': { path: '.agents/skills', key: 'default' },
-  'codearts-agent': { path: '.codeartsdoer/skills', key: 'codearts-agent' },
-  'codebuddy': { path: '.codebuddy/skills', key: 'codebuddy' },
-  'codemaker': { path: '.codemaker/skills', key: 'codemaker' },
-  'codestudio': { path: '.codestudio/skills', key: 'codestudio' },
-  'codex': { path: '.codex/skills', key: 'codex' },
-  'command-code': { path: '.commandcode/skills', key: 'command-code' },
-  'continue': { path: '.continue/skills', key: 'continue' },
-  'cortex': { path: '.snowflake/cortex/skills', key: 'cortex' },
-  'crush': { path: '.config/crush/skills', key: 'crush' },
-  'cursor': { path: '.cursor/skills', key: 'cursor' },
-  'deepagents': { path: '.deepagents/agent/skills', key: 'deepagents' },
-  'devin': { path: '.config/devin/skills', key: 'devin' },
-  'droid': { path: '.factory/skills', key: 'droid' },
-  'firebender': { path: '.firebender/skills', key: 'firebender' },
-  'forgecode': { path: '.forge/skills', key: 'forgecode' },
-  'gemini-cli': { path: '.gemini/skills', key: 'gemini-cli' },
-  'github-copilot': { path: '.copilot/skills', key: 'github-copilot' },
-  'goose': { path: '.config/goose/skills', key: 'goose' },
-  'hermes-agent': { path: '.hermes/skills', key: 'hermes-agent' },
-  'junie': { path: '.junie/skills', key: 'junie' },
-  'iflow-cli': { path: '.iflow/skills', key: 'iflow-cli' },
-  'kilo': { path: '.kilocode/skills', key: 'kilo' },
-  'kiro-cli': { path: '.kiro/skills', key: 'kiro-cli' },
-  'kode': { path: '.kode/skills', key: 'kode' },
-  'mcpjam': { path: '.mcpjam/skills', key: 'mcpjam' },
-  'mistral-vibe': { path: '.vibe/skills', key: 'mistral-vibe' },
-  'mux': { path: '.mux/skills', key: 'mux' },
-  'opencode': { path: '.config/opencode/skills', key: 'opencode' },
-  'openhands': { path: '.openhands/skills', key: 'openhands' },
-  'pi': { path: '.pi/agent/skills', key: 'pi' },
-  'qoder': { path: '.qoder/skills', key: 'qoder' },
-  'qwen-code': { path: '.qwen/skills', key: 'qwen-code' },
-  'rovodev': { path: '.rovodev/skills', key: 'rovodev' },
-  'roo': { path: '.roo/skills', key: 'roo' },
-  'tabnine-cli': { path: '.tabnine/agent/skills', key: 'tabnine-cli' },
-  'trae': { path: '.trae/skills', key: 'trae' },
-  'trae-cn': { path: '.trae-cn/skills', key: 'trae-cn' },
-  'windsurf': { path: '.codeium/windsurf/skills', key: 'windsurf' },
-  'zencoder': { path: '.zencoder/skills', key: 'zencoder' },
-  'neovate': { path: '.neovate/skills', key: 'neovate' },
-  'pochi': { path: '.pochi/skills', key: 'pochi' },
-  'adal': { path: '.adal/skills', key: 'adal' }
+  'default': { projectPath: '.agents/skills', globalPath: '.agents/skills', projectKey: 'default', globalKey: 'default' },
+  'config_agents': { projectPath: '.agents/skills', globalPath: '.config/agents/skills', projectKey: 'default', globalKey: 'config_agents' },
+  'aider-desk': { projectPath: '.aider-desk/skills', globalPath: '.aider-desk/skills', projectKey: 'aider-desk', globalKey: 'aider-desk' },
+  'amp': { projectPath: '.agents/skills', globalPath: '.config/agents/skills', projectKey: 'default', globalKey: 'config_agents' },
+  'kimi-cli': { projectPath: '.agents/skills', globalPath: '.config/agents/skills', projectKey: 'default', globalKey: 'config_agents' },
+  'replit': { projectPath: '.agents/skills', globalPath: '.config/agents/skills', projectKey: 'default', globalKey: 'config_agents' },
+  'universal': { projectPath: '.agents/skills', globalPath: '.config/agents/skills', projectKey: 'default', globalKey: 'config_agents' },
+  'antigravity': { projectPath: '.agents/skills', globalPath: '.gemini/antigravity/skills', projectKey: 'default', globalKey: 'antigravity' },
+  'augment': { projectPath: '.augment/skills', globalPath: '.augment/skills', projectKey: 'augment', globalKey: 'augment' },
+  'bob': { projectPath: '.bob/skills', globalPath: '.bob/skills', projectKey: 'bob', globalKey: 'bob' },
+  'claude-code': { projectPath: '.claude/skills', globalPath: '.claude/skills', projectKey: 'claude-code', globalKey: 'claude-code' },
+  'openclaw': { projectPath: 'skills', globalPath: '.openclaw/skills', projectKey: 'openclaw', globalKey: 'openclaw' },
+  'cline': { projectPath: '.agents/skills', globalPath: '.agents/skills', projectKey: 'default', globalKey: 'default' },
+  'dexto': { projectPath: '.agents/skills', globalPath: '.agents/skills', projectKey: 'default', globalKey: 'default' },
+  'warp': { projectPath: '.agents/skills', globalPath: '.agents/skills', projectKey: 'default', globalKey: 'default' },
+  'codearts-agent': { projectPath: '.codeartsdoer/skills', globalPath: '.codeartsdoer/skills', projectKey: 'codearts-agent', globalKey: 'codearts-agent' },
+  'codebuddy': { projectPath: '.codebuddy/skills', globalPath: '.codebuddy/skills', projectKey: 'codebuddy', globalKey: 'codebuddy' },
+  'codemaker': { projectPath: '.codemaker/skills', globalPath: '.codemaker/skills', projectKey: 'codemaker', globalKey: 'codemaker' },
+  'codestudio': { projectPath: '.codestudio/skills', globalPath: '.codestudio/skills', projectKey: 'codestudio', globalKey: 'codestudio' },
+  'codex': { projectPath: '.agents/skills', globalPath: '.codex/skills', projectKey: 'default', globalKey: 'codex' },
+  'command-code': { projectPath: '.commandcode/skills', globalPath: '.commandcode/skills', projectKey: 'command-code', globalKey: 'command-code' },
+  'continue': { projectPath: '.continue/skills', globalPath: '.continue/skills', projectKey: 'continue', globalKey: 'continue' },
+  'cortex': { projectPath: '.cortex/skills', globalPath: '.snowflake/cortex/skills', projectKey: 'cortex', globalKey: 'cortex' },
+  'crush': { projectPath: '.crush/skills', globalPath: '.config/crush/skills', projectKey: 'crush', globalKey: 'crush' },
+  'cursor': { projectPath: '.agents/skills', globalPath: '.cursor/skills', projectKey: 'default', globalKey: 'cursor' },
+  'deepagents': { projectPath: '.agents/skills', globalPath: '.deepagents/agent/skills', projectKey: 'default', globalKey: 'deepagents' },
+  'devin': { projectPath: '.devin/skills', globalPath: '.config/devin/skills', projectKey: 'devin', globalKey: 'devin' },
+  'droid': { projectPath: '.factory/skills', globalPath: '.factory/skills', projectKey: 'droid', globalKey: 'droid' },
+  'firebender': { projectPath: '.agents/skills', globalPath: '.firebender/skills', projectKey: 'default', globalKey: 'firebender' },
+  'forgecode': { projectPath: '.forge/skills', globalPath: '.forge/skills', projectKey: 'forgecode', globalKey: 'forgecode' },
+  'gemini-cli': { projectPath: '.agents/skills', globalPath: '.gemini/skills', projectKey: 'default', globalKey: 'gemini-cli' },
+  'github-copilot': { projectPath: '.agents/skills', globalPath: '.copilot/skills', projectKey: 'default', globalKey: 'github-copilot' },
+  'goose': { projectPath: '.goose/skills', globalPath: '.config/goose/skills', projectKey: 'goose', globalKey: 'goose' },
+  'hermes-agent': { projectPath: '.hermes/skills', globalPath: '.hermes/skills', projectKey: 'hermes-agent', globalKey: 'hermes-agent' },
+  'junie': { projectPath: '.junie/skills', globalPath: '.junie/skills', projectKey: 'junie', globalKey: 'junie' },
+  'iflow-cli': { projectPath: '.iflow/skills', globalPath: '.iflow/skills', projectKey: 'iflow-cli', globalKey: 'iflow-cli' },
+  'kilo': { projectPath: '.kilocode/skills', globalPath: '.kilocode/skills', projectKey: 'kilo', globalKey: 'kilo' },
+  'kiro-cli': { projectPath: '.kiro/skills', globalPath: '.kiro/skills', projectKey: 'kiro-cli', globalKey: 'kiro-cli' },
+  'kode': { projectPath: '.kode/skills', globalPath: '.kode/skills', projectKey: 'kode', globalKey: 'kode' },
+  'mcpjam': { projectPath: '.mcpjam/skills', globalPath: '.mcpjam/skills', projectKey: 'mcpjam', globalKey: 'mcpjam' },
+  'mistral-vibe': { projectPath: '.vibe/skills', globalPath: '.vibe/skills', projectKey: 'mistral-vibe', globalKey: 'mistral-vibe' },
+  'mux': { projectPath: '.mux/skills', globalPath: '.mux/skills', projectKey: 'mux', globalKey: 'mux' },
+  'opencode': { projectPath: '.agents/skills', globalPath: '.config/opencode/skills', projectKey: 'default', globalKey: 'opencode' },
+  'openhands': { projectPath: '.openhands/skills', globalPath: '.openhands/skills', projectKey: 'openhands', globalKey: 'openhands' },
+  'pi': { projectPath: '.pi/skills', globalPath: '.pi/agent/skills', projectKey: 'pi', globalKey: 'pi' },
+  'qoder': { projectPath: '.qoder/skills', globalPath: '.qoder/skills', projectKey: 'qoder', globalKey: 'qoder' },
+  'qwen-code': { projectPath: '.qwen/skills', globalPath: '.qwen/skills', projectKey: 'qwen-code', globalKey: 'qwen-code' },
+  'rovodev': { projectPath: '.rovodev/skills', globalPath: '.rovodev/skills', projectKey: 'rovodev', globalKey: 'rovodev' },
+  'roo': { projectPath: '.roo/skills', globalPath: '.roo/skills', projectKey: 'roo', globalKey: 'roo' },
+  'tabnine-cli': { projectPath: '.tabnine/agent/skills', globalPath: '.tabnine/agent/skills', projectKey: 'tabnine-cli', globalKey: 'tabnine-cli' },
+  'trae': { projectPath: '.trae/skills', globalPath: '.trae/skills', projectKey: 'trae', globalKey: 'trae' },
+  'trae-cn': { projectPath: '.trae/skills', globalPath: '.trae-cn/skills', projectKey: 'trae-cn', globalKey: 'trae-cn' },
+  'windsurf': { projectPath: '.windsurf/skills', globalPath: '.codeium/windsurf/skills', projectKey: 'windsurf', globalKey: 'windsurf' },
+  'zencoder': { projectPath: '.zencoder/skills', globalPath: '.zencoder/skills', projectKey: 'zencoder', globalKey: 'zencoder' },
+  'neovate': { projectPath: '.neovate/skills', globalPath: '.neovate/skills', projectKey: 'neovate', globalKey: 'neovate' },
+  'pochi': { projectPath: '.pochi/skills', globalPath: '.pochi/skills', projectKey: 'pochi', globalKey: 'pochi' },
+  'adal': { projectPath: '.adal/skills', globalPath: '.adal/skills', projectKey: 'adal', globalKey: 'adal' }
 };
 
 /**
@@ -187,10 +187,13 @@ function validateAgentKeys(agentKeys) {
  * Resolves the canonical state.json configuration key for a given agent option key.
  * Ensures agents sharing identical paths share the same configuration key.
  * @param {string} agentKey - The agent key (e.g. 'replit', 'cline', 'aider-desk')
+ * @param {boolean} [isGlobal] - Scope flag
  * @returns {string} The canonical state key (e.g. 'default', 'config_agents', 'aider-desk')
  */
-function getAgentConfigKey(agentKey) {
-  return SUPPORTED_AGENTS[agentKey]?.key || 'default';
+function getAgentConfigKey(agentKey, isGlobal = IS_TEST_ENV) {
+  const info = SUPPORTED_AGENTS[agentKey];
+  if (!info) return 'default';
+  return isGlobal ? info.globalKey : info.projectKey;
 }
 
 /**
@@ -201,24 +204,25 @@ function getAgentConfigKey(agentKey) {
  * @returns {string} The resolved absolute skills directory path
  */
 function getAgentSkillsDir(agentKey, isGlobalOrHome = IS_TEST_ENV) {
-  const configKey = getAgentConfigKey(agentKey);
   let home;
+  let isGlobal;
+
   if (typeof isGlobalOrHome === 'string') {
     home = isGlobalOrHome;
+    isGlobal = true;
   } else {
-    home = isGlobalOrHome ? USER_HOME : process.cwd();
+    isGlobal = !!isGlobalOrHome;
+    home = isGlobal ? USER_HOME : process.cwd();
   }
-  
-  if (configKey === 'default' && home === USER_HOME) {
+
+  const configKey = getAgentConfigKey(agentKey, isGlobal);
+  const agentInfo = SUPPORTED_AGENTS[configKey] || SUPPORTED_AGENTS['default'];
+  const relPath = isGlobal ? agentInfo.globalPath : agentInfo.projectPath;
+
+  if (configKey === 'default' && isGlobal && home === USER_HOME) {
     return SKILLS_DIR;
   }
-  if (configKey === 'default') {
-    return path.join(home, '.agents', 'skills');
-  }
-  const relPath = SUPPORTED_AGENTS[configKey]?.path;
-  if (!relPath) {
-    return path.join(home, '.agents', 'skills');
-  }
+
   return path.join(home, ...relPath.split('/'));
 }
 
@@ -232,7 +236,7 @@ function setTestEnv(sandboxPath) {
   USER_HOME = sandboxPath;
   AGENTS_DIR = sandboxPath;
   SKILLS_DIR = path.join(AGENTS_DIR, 'skills');
-  
+
   // Set sandboxed XDG folders under sandboxPath
   LIBRARY_DIR = path.join(sandboxPath, 'data', 'skillsman', '.agents', 'skills');
   PRESETS_DIR = path.join(sandboxPath, 'config', 'skillsman', 'presets');
@@ -268,15 +272,16 @@ function getDefaultState() {
  */
 function loadState(isGlobal = IS_TEST_ENV) {
   const file = getStateFile(isGlobal);
-  
+
   // Dynamic fallback: if local state file does not exist, fall back to global state file
   if (!isGlobal && !fs.existsSync(file)) {
     const globalFile = getStateFile(true);
     if (fs.existsSync(globalFile)) {
       try {
         const data = fs.readFileSync(globalFile, 'utf8');
-        return parseStateJSON(data);
-      } catch (err) {}
+        const globalState = parseStateJSON(data);
+        return convertGlobalToLocalState(globalState);
+      } catch (err) { }
     }
     return getDefaultState();
   }
@@ -290,6 +295,62 @@ function loadState(isGlobal = IS_TEST_ENV) {
   } catch (err) {
     return getDefaultState();
   }
+}
+
+/**
+ * Converts a global state object to a local state object by merging
+ * all agent configurations that share the local '.agents/skills' project path into the 'default' key.
+ * @param {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>} globalState - The global state object
+ * @returns {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>} The converted local state object
+ */
+function convertGlobalToLocalState(globalState) {
+  /** @type {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>} */
+  const localState = {
+    'default': {
+      activePresets: [],
+      alwaysPresets: ['always'],
+      neverPresets: ['never']
+    }
+  };
+
+  const defaultActive = new Set();
+  const defaultAlways = new Set(['always']);
+  const defaultNever = new Set(['never']);
+
+  for (const key of Object.keys(globalState)) {
+    const configKey = key;
+    let isLocalDefault = false;
+
+    const agentEntry = Object.values(SUPPORTED_AGENTS).find(info => info.globalKey === configKey);
+    if (agentEntry && agentEntry.projectPath === '.agents/skills') {
+      isLocalDefault = true;
+    } else if (configKey === 'default') {
+      isLocalDefault = true;
+    }
+
+    if (isLocalDefault) {
+      const agentState = globalState[configKey];
+      if (agentState) {
+        if (Array.isArray(agentState.activePresets)) {
+          for (const p of agentState.activePresets) defaultActive.add(p);
+        }
+        if (Array.isArray(agentState.alwaysPresets)) {
+          for (const p of agentState.alwaysPresets) defaultAlways.add(p);
+        }
+        if (Array.isArray(agentState.neverPresets)) {
+          for (const p of agentState.neverPresets) defaultNever.add(p);
+        }
+      }
+    } else {
+      localState[configKey] = JSON.parse(JSON.stringify(globalState[configKey]));
+    }
+  }
+
+  localState['default'].activePresets = Array.from(defaultActive);
+  localState['default'].alwaysPresets = Array.from(defaultAlways);
+  localState['default'].neverPresets = Array.from(defaultNever);
+
+  return localState;
 }
 
 /**
@@ -394,7 +455,7 @@ function loadSkillsFromPreset(presetName, visited = new Set()) {
   try {
     const content = fs.readFileSync(presetPath, 'utf8');
     const { data } = parseFrontmatter(content);
-    
+
     const skills = new Set();
 
     // 1. Add direct skills
@@ -667,7 +728,7 @@ function collect(agentKeys, isGlobal = IS_TEST_ENV) {
         const isWindows = process.platform === 'win32';
         fs.symlinkSync(targetPath, itemPath, isWindows ? 'junction' : 'dir');
         console.log(`  \x1b[32m✔\x1b[0m Replaced with junction: ${item} -> ${targetPath}`);
-        
+
         migratedCount++;
       }
     }
@@ -688,10 +749,9 @@ function collect(agentKeys, isGlobal = IS_TEST_ENV) {
  */
 function listPresets() {
   console.log('\x1b[36m%s\x1b[0m', '=== Available Presets ===');
-  
+
   const presetsDir = getPresetsDir();
   if (!fs.existsSync(presetsDir)) {
-    console.log('\x1b[90mPresets directory does not exist. Run "skillsman init" first.\x1b[0m');
     return;
   }
 
@@ -708,7 +768,7 @@ function listPresets() {
     try {
       const content = fs.readFileSync(filePath, 'utf8');
       const { data } = parseFrontmatter(content);
-      
+
       const presetName = data.name || path.basename(file, '.md');
       const desc = data.description || 'No description provided';
       const resolvedSkills = loadSkillsFromPreset(presetName);
@@ -743,7 +803,7 @@ function showStatus(agentKeys, isGlobal = IS_TEST_ENV) {
   /** @type {string[]} */
   let targetKeys;
   if (agentKeys && agentKeys.length > 0) {
-    targetKeys = Array.from(new Set(agentKeys.map(k => getAgentConfigKey(k))));
+    targetKeys = Array.from(new Set(agentKeys.map(k => getAgentConfigKey(k, isGlobal))));
   } else {
     // Show all keys present in state
     targetKeys = Object.keys(multiState);
@@ -803,11 +863,6 @@ function syncState(isGlobal = IS_TEST_ENV) {
   const presetsDir = getPresetsDir();
   const libraryDir = getLibraryDir();
 
-  // Ensure libraries and presets exist
-  if (!fs.existsSync(presetsDir) || !fs.existsSync(libraryDir)) {
-    console.error('\x1b[31mError: Environment not initialized. Please run "skillsman init" first.\x1b[0m');
-    process.exit(1);
-  }
 
   for (const key of Object.keys(multiState)) {
     const agentState = multiState[key];
@@ -871,25 +926,34 @@ function syncState(isGlobal = IS_TEST_ENV) {
       const targetPath = path.join(libraryDir, skillName);
       const linkPath = path.join(skillsDir, skillName);
 
-      // Validate physical existence in library
-      if (!fs.existsSync(targetPath)) {
-        console.error(`\x1b[31mError: Skill "${skillName}" is not found in library directory ${libraryDir}.\x1b[0m`);
-        continue;
-      }
-
       const currentLinkTarget = activeSymlinks[skillName];
       if (currentLinkTarget) {
         // Already linked. Verify target matches (robustly check physical paths to handle symlinks/junctions/drives redirects)
         if (safeRealpath(currentLinkTarget) === safeRealpath(targetPath)) {
-          unchangedCount++;
+          // If the target matches but the target itself doesn't exist, it's a dead link!
+          if (!fs.existsSync(targetPath)) {
+            try {
+              fs.unlinkSync(linkPath);
+              console.log(`  \x1b[31m- Removed dead link:\x1b[0m ${skillName}`);
+            } catch (e) { }
+          } else {
+            unchangedCount++;
+          }
           continue;
         }
-        // target mismatch: remove and recreate
+        // target mismatch: remove first (even if target doesn't exist in library)
         try {
           fs.unlinkSync(linkPath);
-        } catch (e) {}
+          console.log(`  \x1b[31m- Removed mismatched link:\x1b[0m ${skillName}`);
+        } catch (e) { }
       } else if (physicalFolders.includes(skillName)) {
         console.warn(`\x1b[33mWarning: Skipped creating link for "${skillName}" because a physical folder already exists in active folder.\x1b[0m`);
+        continue;
+      }
+
+      // Validate physical existence in library before creating link
+      if (!fs.existsSync(targetPath)) {
+        console.error(`\x1b[31mError: Skill "${skillName}" is not found in library directory ${libraryDir}.\x1b[0m`);
         continue;
       }
 
@@ -931,12 +995,12 @@ function syncState(isGlobal = IS_TEST_ENV) {
 /**
  * Command: use / activate / deactivate
  * Usage: skillsman use <preset1> [preset2]...
- * @param {string[]} presetArgs - The arguments passed to the preset use command
+ * @param {string[]} [presetArgs] - The arguments passed to the preset use command
  * @param {string[]} [agentKeys] - The specific agents to target (defaults to ['default'])
  * @param {boolean} [isGlobal] - Scope flag
  * @returns {void}
  */
-function usePresets(presetArgs, agentKeys = ['default'], isGlobal = IS_TEST_ENV) {
+function usePresets(presetArgs = [], agentKeys = ['default'], isGlobal = IS_TEST_ENV) {
   validateAgentKeys(agentKeys);
   const targetAgents = (!agentKeys || agentKeys.length === 0) ? ['default'] : agentKeys;
 
@@ -947,7 +1011,7 @@ function usePresets(presetArgs, agentKeys = ['default'], isGlobal = IS_TEST_ENV)
     const multiState = loadState(isGlobal);
 
     for (const rawKey of targetAgents) {
-      const canonicalKey = getAgentConfigKey(rawKey);
+      const canonicalKey = getAgentConfigKey(rawKey, isGlobal);
       if (!multiState[canonicalKey]) {
         multiState[canonicalKey] = getDefaultAgentState();
       }
@@ -955,7 +1019,7 @@ function usePresets(presetArgs, agentKeys = ['default'], isGlobal = IS_TEST_ENV)
     saveState(multiState, isGlobal);
 
     for (const rawKey of targetAgents) {
-      const canonicalKey = getAgentConfigKey(rawKey);
+      const canonicalKey = getAgentConfigKey(rawKey, isGlobal);
       const state = multiState[canonicalKey];
       console.log(`\x1b[90mActive presets in state for "${canonicalKey}":\x1b[0m ${state.activePresets.join(', ') || 'none'}`);
     }
@@ -968,7 +1032,7 @@ function usePresets(presetArgs, agentKeys = ['default'], isGlobal = IS_TEST_ENV)
   const multiState = loadState(isGlobal);
 
   for (const rawKey of targetAgents) {
-    const canonicalKey = getAgentConfigKey(rawKey);
+    const canonicalKey = getAgentConfigKey(rawKey, isGlobal);
     if (!multiState[canonicalKey]) {
       multiState[canonicalKey] = getDefaultAgentState();
     }
@@ -1027,7 +1091,7 @@ function usePresets(presetArgs, agentKeys = ['default'], isGlobal = IS_TEST_ENV)
   saveState(multiState, isGlobal);
 
   for (const rawKey of targetAgents) {
-    const canonicalKey = getAgentConfigKey(rawKey);
+    const canonicalKey = getAgentConfigKey(rawKey, isGlobal);
     const state = multiState[canonicalKey];
     console.log(`\x1b[90mActive presets in state for "${canonicalKey}":\x1b[0m ${state.activePresets.join(', ') || 'none'}`);
   }
@@ -1079,7 +1143,7 @@ function cleanRemovedSkillsAndPresets(removedSkills = [], isGlobal = IS_TEST_ENV
     if (stateChanged) {
       saveState(state, isGlobal);
     }
-  } catch (err) {}
+  } catch (err) { }
 
   // 3. Sync junctions to match new state
   syncState(isGlobal);
@@ -1095,7 +1159,7 @@ function cleanRemovedSkillsAndPresets(removedSkills = [], isGlobal = IS_TEST_ENV
  */
 function delegateToSkillsCLI(command, args = [], isGlobal = IS_TEST_ENV) {
   const { spawnSync } = require('child_process');
-  
+
   const stateFile = getStateFile(isGlobal);
   const libraryDir = getLibraryDir();
   const xdgStateHome = path.dirname(stateFile);
@@ -1141,7 +1205,8 @@ function delegateToSkillsCLI(command, args = [], isGlobal = IS_TEST_ENV) {
 
   // Resolve the absolute physical path to the official "skills" CLI package entry point.
   // This completely bypasses npx/network, avoids drive/symlink resolution failures, and is 10x faster.
-  let skillsBinPath;
+  let skillsBinPath = '';
+  let useDirect = false;
   try {
     const skillsPkgJsonPath = require.resolve('skills/package.json');
     const skillsPkgJson = require(skillsPkgJsonPath);
@@ -1149,16 +1214,27 @@ function delegateToSkillsCLI(command, args = [], isGlobal = IS_TEST_ENV) {
       ? skillsPkgJson.bin
       : (skillsPkgJson.bin.skills || skillsPkgJson.bin['skills-cli']);
     skillsBinPath = path.resolve(path.dirname(skillsPkgJsonPath), binRelPath);
+    useDirect = true;
   } catch (err) {
-    console.error(`\n\x1b[31m✖ Error: Could not resolve official 'skills' package CLI.\x1b[0m`, err instanceof Error ? err.message : String(err));
-    process.exit(1);
+    // Fallback to NPX if local/nested resolution fails
   }
 
-  const spawnArgs = [skillsBinPath, command, ...args];
+  let spawnExecutable;
+  /** @type {string[]} */
+  let spawnArgs;
+
+  if (useDirect) {
+    spawnExecutable = process.execPath;
+    spawnArgs = [skillsBinPath, command, ...args];
+  } else {
+    const isWindows = process.platform === 'win32';
+    spawnExecutable = isWindows ? 'npx.cmd' : 'npx';
+    spawnArgs = ['skills', command, ...args];
+  }
 
   console.log(`\x1b[36m[skillsman] Delegating to official skills package manager...\x1b[0m\n`);
 
-  const result = spawnSync(process.execPath, spawnArgs, {
+  const result = spawnSync(spawnExecutable, spawnArgs, {
     env: sandboxedEnv,
     stdio: 'inherit'
   });
@@ -1189,7 +1265,7 @@ function delegateToSkillsCLI(command, args = [], isGlobal = IS_TEST_ENV) {
           if (stat.isDirectory() && now - stat.mtimeMs < 15000) {
             newlyInstalled.push(item);
           }
-        } catch (e) {}
+        } catch (e) { }
       }
 
       // Fallback: match by basename
@@ -1249,12 +1325,12 @@ module.exports = {
     getAgentSkillsDir,
     getAgentConfigKey,
     cleanRemovedSkillsAndPresets,
-    getPaths: () => ({ 
-      AGENTS_DIR, 
-      SKILLS_DIR, 
-      LIBRARY_DIR: getLibraryDir(), 
-      PRESETS_DIR: getPresetsDir(), 
-      STATE_FILE: getStateFile(true) 
+    getPaths: () => ({
+      AGENTS_DIR,
+      SKILLS_DIR,
+      LIBRARY_DIR: getLibraryDir(),
+      PRESETS_DIR: getPresetsDir(),
+      STATE_FILE: getStateFile(true)
     })
   }
 };
