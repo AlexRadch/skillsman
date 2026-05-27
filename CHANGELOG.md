@@ -13,7 +13,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.4.0] - 2026-05-27
 
+This release introduces project-level workspace isolation and local preset management, enabling developer environments to define project-specific active, always-loaded, and blacklisted preset states with automatic global XDG fallback and an explicit `-g/--global` override.
+
+### Added
+
+- **Workspace-Level Preset Isolation**: Implemented local `.agents/skillsman-state.json` parsing and loading to track active, always-loaded, and never-loaded presets independently for each project/workspace.
+- **Hybrid Global/Local Scope**: Retains user-wide presets in the global XDG configuration directories while targeting and projecting active skills inside the local workspace.
+- **Automatic XDG State Fallback**: Configured dynamic fallback behavior where `skillsman` seamlessly reads and modifies global XDG configurations if no local project state is present.
+- **On-Demand Local Setup**: Enabled zero-setup workspace initialization where the `.agents/` folder and local state file are created automatically upon executing state changes (e.g. `skillsman use`).
+- **Global Override Flag**: Added a native `--global`/`-g` command line option allowing operations to bypass the local workspace environment and directly configure global settings.
+
 ## [0.3.0] - 2026-05-26
+
+This release introduces global multi-agent orchestration, transitioning internal state architecture to track and synchronize presets independently across 50+ supported AI agent directories with a native variadic `--agent` option and strict agent key validation.
 
 ### Added
 
@@ -24,6 +36,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Agent Key Validation**: `collect()`, `showStatus()`, and `usePresets()` now validate every supplied `-a` agent key against the `SUPPORTED_AGENTS` registry. An unrecognised key (including comma-joined strings such as `replit,aider-desk`) immediately prints `Error: Invalid agent: <agent>` to stderr and exits with code 1.
 
 ## [0.2.0] - 2026-05-26
+
+This release decouples the programmatic API from the command-line interface, introducing a unified `skills` / `skillsman` entry point, self-healing global command shims, and sandbox-redirected package-manager execution under XDG state paths.
 
 ### Added
 
@@ -36,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Renamed Overlapping Commands**: Renamed preset listing `list`/`ls` to `presets` (alias `ps`), and environment setup `init` to `collect`, keeping `init` reserved exclusively for initializing new skill project templates.
 
 ## [0.1.2] - 2026-05-25
+
+This minor release establishes secure packaging and distribution mechanisms, utilizing OIDC Trusted Publishing and automated provenance attestations to guarantee verified supply chain security on npmjs.com.
 
 ### Added
 
