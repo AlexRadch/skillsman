@@ -4,35 +4,35 @@ Welcome to the **skillsman** User Guide. This document provides a complete refer
 
 ---
 
-## 📂 Directory Layout
+## 📂 Directory Layout & Scopes
 
-`skillsman` operates strictly conforming to the cross-platform **XDG Base Directory Specification**, separating user configuration, local machine state, and active linkages.
+`skillsman` separates physical skills, user configuration presets, machine state, and active link projections. It runs in **Local Project Scope** by default, with support for **Global Scope** via the `-g / --global` option.
 
-### 1. Active Projections (Target System Zone)
-
-* **Path**: `~/.agents/skills/`
-* **Purpose**: Symbolic links / Windows Directory Junctions are dynamically projected here. AI coding agents (such as Claude Code) read active skills directly from this folder.
-
-### 2. User Configuration (`XDG_CONFIG_HOME`)
+### 1. User Configuration Presets (Always Global)
 
 * **Path**: `skillsman/presets/`
   * Linux/macOS: `~/.config/skillsman/presets/`
   * Windows: `C:\Users\<user>\AppData\Roaming\skillsman\presets\`
-* **Purpose**: User-authored preset markdown files containing YAML frontmatter that define skill assemblies and recursive preset references.
+* **Purpose**: User-authored preset `.md` files containing YAML frontmatter defining skill assemblies.
 
-### 3. Local Machine State (`XDG_STATE_HOME`)
+### 2. User Data (Physical Library - Always Global)
 
-* **Path**: `skillsman/state.json`
-  * Linux/macOS: `~/.local/state/skillsman/state.json`
-  * Windows: `C:\Users\<user>\AppData\Local\skillsman\state.json`
-* **Purpose**: Automatically managed state tracking active, always-loaded, and blacklisted presets.
+* **Path**: `skillsman/.agents/skills/`
+  * Linux/macOS: `~/.local/share/skillsman/.agents/skills/`
+  * Windows: `C:\Users\<user>\AppData\Local\skillsman\.agents\skills\`
+* **Purpose**: Physical source storage for all installed and developed skills.
 
-### 4. User Data (`XDG_DATA_HOME`)
+### 3. Local Project Scope (Default)
 
-* **Path**: `skillsman/skills/`
-  * Linux/macOS: `~/.local/share/skillsman/skills/`
-  * Windows: `C:\Users\<user>\AppData\Local\skillsman\skills\`
-* **Purpose**: Physical source storage containing all your downloaded and developed skills (contains subfolders with `SKILL.md` files).
+* **Active Projections**: Created relative to `process.cwd()` under the target agent's folder (e.g. `./.agents/skills/` or `./.claude/skills/`).
+* **Project State**: Saved in `./.agents/skillsman-state.json`.
+* **Fallback Behavior**: When loading, if the local state file does not exist, `skillsman` automatically falls back to loading the global state.
+* **On-Demand Creation**: Local state and folder structure are created on-the-fly when you write state changes (e.g., running `skillsman use dev`).
+
+### 4. Global Scope (`-g / --global`)
+
+* **Active Projections**: Created relative to `USER_HOME` (e.g., `~/.agents/skills/` or `~/.claude/skills/`).
+* **Global State**: Saved under XDG State Home (`~/.local/state/skillsman/state.json`).
 
 ---
 
@@ -70,7 +70,6 @@ When `-a` is omitted, commands operate on **all agents** present in `state.json`
 ### Supported Agents
 
 The full registry (50+ agents) includes: `default`, `aider-desk`, `amp`, `antigravity`, `augment`, `bob`, `claude-code`, `cline`, `codex`, `command-code`, `continue`, `cursor`, `devin`, `gemini-cli`, `github-copilot`, `goose`, `junie`, `kilo`, `opencode`, `replit`, `roo`, `trae`, `windsurf`, `zencoder`, and many more.
-
 
 #### `skillsman presets` (alias: `ps`)
 

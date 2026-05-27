@@ -95,7 +95,8 @@ function ensureSkillsLink() {
  * @returns {void}
  */
 function delegateToSkillsCLI(command, args = []) {
-  skillsman.delegateToSkills(command, args);
+  const opts = program.opts();
+  skillsman.delegateToSkills(command, args, opts.global);
 }
 
 /**
@@ -107,7 +108,8 @@ function main() {
     .name(pkg.name)
     .description(pkg.description)
     .version(pkg.version)
-    .option('-a, --agent <agent...>', 'Target specific AI agents (space-separated or repeated)');
+    .option('-a, --agent <agent...>', 'Target specific AI agents (space-separated or repeated)')
+    .option('-g, --global', 'Operate on the global/user level instead of the local project level');
 
   // === NATIVE SKILLSMAN PRESET COMMANDS ===
 
@@ -116,7 +118,7 @@ function main() {
     .description('Scan active directories for physical skills, collect them to library, create symlinks and presets')
     .action(() => {
       const opts = program.opts();
-      skillsman.collect(opts.agent);
+      skillsman.collect(opts.agent, opts.global);
     });
 
   program
@@ -132,7 +134,7 @@ function main() {
     .description('Show active presets and current projection links')
     .action(() => {
       const opts = program.opts();
-      skillsman.showStatus(opts.agent);
+      skillsman.showStatus(opts.agent, opts.global);
     });
 
   program
@@ -145,7 +147,7 @@ function main() {
        */
       (presets) => {
         const opts = program.opts();
-        skillsman.usePresets(presets, opts.agent);
+        skillsman.usePresets(presets, opts.agent, opts.global);
       }
     );
 
@@ -158,7 +160,7 @@ function main() {
        */
       (presets) => {
         const opts = program.opts();
-        skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '+' + p), opts.agent);
+        skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '+' + p), opts.agent, opts.global);
       }
     );
 
@@ -171,7 +173,7 @@ function main() {
        */
       (presets) => {
         const opts = program.opts();
-        skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '-' + p), opts.agent);
+        skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '-' + p), opts.agent, opts.global);
       }
     );
 

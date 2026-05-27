@@ -451,7 +451,7 @@ skills:
   it('19. should parse space-separated and repeated --agent flags via Commander CLI subprocess', () => {
     const cliPath = path.resolve(__dirname, '..', '..', 'cli.js');
 
-    execSync(`node "${cliPath}" use presetA -a replit aider-desk -a default`, {
+    execSync(`node "${cliPath}" use presetA -a replit aider-desk -a default -g`, {
       env: {
         ...process.env,
         XDG_CONFIG_HOME: path.join(sandboxPath, 'config'),
@@ -504,6 +504,84 @@ skills:
       assert.strictEqual(err.status, 1);
       const stderr = err.stderr.toString();
       assert.ok(stderr.includes('Error: Invalid agent:'), `Expected error in stderr, got: ${stderr}`);
+    }
+  });
+
+  it('21. should dynamically create .agents and save project-specific state locally without -g', () => {
+    // 1. Set working directory to sandbox-integration to simulate running inside a project
+    const originalCwd = process.cwd();
+    process.chdir(sandboxPath);
+
+    // Ensure .agents/ does not exist first
+    const localAgentsDir = path.join(sandboxPath, '.agents');
+    if (fs.existsSync(localAgentsDir)) {
+      fs.rmSync(localAgentsDir, { recursive: true, force: true });
+    }
+
+    try {
+      // 2. Call usePresets locally (without -g)
+      // Note: we pass isGlobal = false explicitly to override IS_TEST_ENV default
+      usePresets(['presetB'], undefined, false);
+
+      // 3. Verify .agents/ and .agents/skillsman-state.json were created successfully
+      const localStateFile = path.join(localAgentsDir, 'skillsman-state.json');
+      assert.ok(fs.existsSync(localAgentsDir), '.agents directory was not created');
+      assert.ok(fs.existsSync(localStateFile), 'skillsman-state.json was not created');
+
+      // 4. Verify local state was saved correctly
+      const localState = JSON.parse(fs.readFileSync(localStateFile, 'utf8'));
+      assert.deepStrictEqual(localState['default'].activePresets, ['presetB']);
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+
+  it('22. should fall back to loading the global state file when the local state file is missing', () => {
+    const originalCwd = process.cwd();
+    process.chdir(sandboxPath);
+
+    const localAgentsDir = path.join(sandboxPath, '.agents');
+    const localStateFile = path.join(localAgentsDir, 'skillsman-state.json');
+    if (fs.existsSync(localStateFile)) {
+      fs.unlinkSync(localStateFile);
+    }
+
+    try {
+      // 1. Save presetA to the global state
+      const globalState = loadState(true);
+      globalState['default'].activePresets = ['presetA'];
+      saveState(globalState, true);
+
+      // 2. Load the state locally (without -g). It should fall back to the global state!
+      const resolvedState = loadState(false);
+      assert.deepStrictEqual(resolvedState['default'].activePresets, ['presetA']);
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+
+  it('23. should update only the global state file when running with -g / --global option', () => {
+    const originalCwd = process.cwd();
+    process.chdir(sandboxPath);
+
+    const localAgentsDir = path.join(sandboxPath, '.agents');
+    const localStateFile = path.join(localAgentsDir, 'skillsman-state.json');
+    if (fs.existsSync(localStateFile)) {
+      fs.unlinkSync(localStateFile);
+    }
+
+    try {
+      // 1. Call usePresets with isGlobal = true
+      usePresets(['presetB'], undefined, true);
+
+      // 2. Verify local state was NOT created
+      assert.ok(!fs.existsSync(localStateFile), 'local state file should not be created for global use');
+
+      // 3. Verify global state was updated
+      const globalState = loadState(true);
+      assert.deepStrictEqual(globalState['default'].activePresets, ['presetB']);
+    } finally {
+      process.chdir(originalCwd);
     }
   });
 });

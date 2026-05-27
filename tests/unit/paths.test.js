@@ -144,4 +144,21 @@ describe('XDG Path Resolution Unit Tests', () => {
       assert.strictEqual(getAgentSkillsDir('config_agents', dummyHome), expectedPath);
     });
   });
+
+  describe('local project path resolution', () => {
+    it('should resolve default skills path relative to process.cwd() when isGlobal is false', () => {
+      const resolved = getAgentSkillsDir('default', false);
+      assert.strictEqual(resolved, path.join(process.cwd(), '.agents', 'skills'));
+    });
+
+    it('should resolve aider-desk skills path relative to process.cwd() when isGlobal is false', () => {
+      const resolved = getAgentSkillsDir('aider-desk', false);
+      assert.strictEqual(resolved, path.join(process.cwd(), '.aider-desk', 'skills'));
+    });
+
+    it('should resolve config_agents skills path relative to process.cwd() when isGlobal is false', () => {
+      const resolved = getAgentSkillsDir('replit', false);
+      assert.strictEqual(resolved, path.join(process.cwd(), '.config', 'agents', 'skills'));
+    });
+  });
 });

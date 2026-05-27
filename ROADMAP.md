@@ -4,27 +4,11 @@ This document outlines the planned features, enhancements, and architectural mil
 
 ---
 
-## ✅ Completed
-
-### 🤖 Target Specific Agents (Global Level)
-
-* Implemented `-a, --agent <agent...>` global Commander option (variadic, space-separated or repeated flags).
-* `SUPPORTED_AGENTS` registry covers 50+ agents mapped to their canonical XDG skill directories.
-* `state.json` transitioned to per-agent multi-agent structure; each agent tracks its own `activePresets`, `alwaysPresets`, and `neverPresets` independently.
-* `collect()`, `showStatus()`, and `usePresets()` target specific agents when `-a` is provided, or operate globally across all agents otherwise.
-* Agent key validation: passing an unrecognised agent name (including comma-joined strings like `replit,aider-desk`) prints `Error: Invalid agent: <agent>` to stderr and exits with code 1.
-
----
-
 ## 🎯 Short-Term Goals (v0+)
 
-### 1. 📁 Workspace & Project-Level Skills
+### 1. 📂 Local (Project) Presets Support
 
-* Enable local project skill management and workspace isolation (currently all operations are performed at the user/global level).
-
-### 2. 🎯 Target Specific Agents (Project Level)
-
-* Support targeting specific agents (e.g., `claude-code`, `codex`) at the local project/workspace level.
+* Add support for local project-specific presets inside `.skillsman/presets/` that can overlay or extend global presets.
 
 ---
 
@@ -73,3 +57,28 @@ This document outlines the planned features, enhancements, and architectural mil
   * Running multiple IDEs/agents (e.g. Cursor, VS Code with Cline) concurrently in different projects creates race conditions over the shared `~/.agents/skills` directory.
 * **Proposed Concept**:
   * Implement Node.js-level monkey-patching via a lightweight preload hook (`node -r` / `NODE_OPTIONS`) to dynamically intercept `os.homedir()` or `fs` file operations specifically and only inside the agent process, keeping the host shell environment intact.
+
+---
+
+## ✅ Completed
+
+### 📁 Workspace & Project-Level Skills
+
+* Enable local project-level state management and workspace isolation:
+  * Local state file `.agents/skillsman-state.json` tracks active, always-loaded, and blacklisted presets at the local project level.
+  * Presets remain global (stored in XDG configuration directory) for seamless sharing.
+  * Synchronizes active local projections (`.agents/skills/`, etc.) relative to the local project workspace's state.
+  * Implemented automatic dynamic fallback loading: if the local project-level state file is absent, `skillsman` falls back to loading the global XDG state.
+  * On-demand creation: The `.agents/` folder and `skillsman-state.json` are automatically created on the fly when saving state changes (e.g. running `skillsman use <presets>`), eliminating the need for manual initialization commands.
+
+### 🎯 Target Specific Agents (Project Level)
+
+* Support targeting specific agents (e.g., `claude-code`, `codex`) at the local project/workspace level via `.agents/skillsman-state.json`.
+
+### 🤖 Target Specific Agents (Global Level)
+
+* Implemented `-a, --agent <agent...>` global Commander option (variadic, space-separated or repeated flags).
+* `SUPPORTED_AGENTS` registry covers 50+ agents mapped to their canonical XDG skill directories.
+* `state.json` transitioned to per-agent multi-agent structure; each agent tracks its own `activePresets`, `alwaysPresets`, and `neverPresets` independently.
+* `collect()`, `showStatus()`, and `usePresets()` target specific agents when `-a` is provided, or operate globally across all agents otherwise.
+* Agent key validation: passing an unrecognised agent name (including comma-joined strings like `replit,aider-desk`) prints `Error: Invalid agent: <agent>` to stderr and exits with code 1.

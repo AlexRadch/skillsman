@@ -52,9 +52,9 @@ The core logical module of the manager, containing:
 * **Agent Registry (`SUPPORTED_AGENTS`)**: A static map of 50+ agents associating each agent key (e.g. `claude-code`, `cursor`, `aider-desk`) with its canonical config key and relative XDG skill directory path.
 * **Agent Key Validation (`validateAgentKeys`)**: Guards `collect()`, `showStatus()`, and `usePresets()` at entry — any unrecognised agent key (including comma-joined strings) triggers `Error: Invalid agent: <agent>` on stderr and `process.exit(1)`.
 * **DFS Resolver**: `resolveFinalSkills(state)` implements recursive Depth-First Search tree traversal to expand nested presets and filter out blacklisted ones.
-* **Projection Linker**: `syncState()` synchronizes symbolic links / Windows Directory Junctions inside each agent's skills directory to match `state.json`.
-* **Ingestion Engine**: `collect()` scans, migrates physical folders, generates markdown presets on-the-fly, and links folders back.
-* **Subprocess Delegation**: `delegateToSkillsCLI(command, args)` resolves the physical file path of the nested `skills` package dependency and directly executes it via Node (`spawnSync`), setting sandboxed environment variables for environment redirection.
+* **Projection Linker**: `syncState()` synchronizes symbolic links / Windows Directory Junctions inside each agent's skills directory to match the target scope.
+* **Ingestion Engine**: `collect()` scans active directories, migrates physical folders, generates markdown presets on-the-fly, and links folders back. It also auto-discovers and generates presets for skills pre-installed in the global library.
+* **Subprocess Delegation**: `delegateToSkillsCLI(command, args)` resolves the physical file path of the nested `skills` package dependency and directly executes it via Node (`spawnSync`), setting sandboxed environment variables (including uniform `HOME` and `USERPROFILE` redirection to the global `~/.local/share/skillsman`) for perfect environment isolation.
 
 ---
 
