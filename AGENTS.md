@@ -55,6 +55,12 @@ Full coding conventions are documented in [**`docs/developer_guide.md`**](docs/d
 * **Mandatory Documentation Check**: Before proposing or writing custom arguments preprocessing, helper wrappers, or workaround implementations, the AI agent **MUST** thoroughly read and analyze the official documentation/API specification of the library in use (e.g., `commander`).
 * Always prefer native features (such as Commander's Variadic Options) over custom scripting code.
 
+### 6. Version Bumps & Releases
+
+* **Changelog Validation**: Before recommending, executing, or automating any `npm version` bump, the agent **MUST** ensure the `CHANGELOG.md` is fully populated with a comprehensive summary description and detailed `### Added`/`### Changed`/`### Fixed` sections.
+* **Never** leave version sections empty in `CHANGELOG.md`.
+* Always remind the user to update the changelog details first before performing a version increment.
+
 ---
 
 ## 🚀 Common Developer Commands
