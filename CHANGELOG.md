@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-05-27
+
 ## [0.4.0] - 2026-05-27
 
 This release introduces project-level workspace isolation and local preset management, enabling developer environments to define project-specific active, always-loaded, and blacklisted preset states with automatic global XDG fallback and an explicit `-g/--global` override.
