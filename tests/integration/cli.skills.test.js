@@ -178,10 +178,10 @@ describe('CLI Skills Delegation Integration Tests', () => {
   });
 
   it('4. should delegate "remove" to delete local skill and trigger auto-preset clean-up hook', () => {
-    // Run "cli.js remove sandboxed-local-skill -g -y"
-    console.log('  [Test] Running: cli.js remove sandboxed-local-skill -g -y');
+    // Run "cli.js remove sandboxed-local-skill -y"
+    console.log('  [Test] Running: cli.js remove sandboxed-local-skill -y');
     try {
-      const output = execSync(`node "${cliPath}" remove sandboxed-local-skill -g -y`, {
+      const output = execSync(`node "${cliPath}" remove sandboxed-local-skill -y`, {
         cwd: sandboxPath,
         env: testEnv,
         stdio: 'pipe'
@@ -211,15 +211,15 @@ describe('CLI Skills Delegation Integration Tests', () => {
       assert.ok(!exists, message);
     };
 
-    // Verify that the physical folder inside library was deleted
+    // Verify that the physical folder inside library was NOT deleted and is kept safe
     const expectedLibraryDir = path.join(currentPaths.LIBRARY_DIR, 'sandboxed-local-skill');
-    assertDeletedWithRetry(expectedLibraryDir, 'Physical skill folder not deleted from sandboxed library');
+    assert.ok(fs.existsSync(expectedLibraryDir), 'Physical skill folder should not be deleted from sandboxed library');
 
-    // Verify that the preset file was deleted
+    // Verify that the preset file was NOT deleted
     const expectedPresetFile = path.join(currentPaths.PRESETS_DIR, 'sandboxed-local-skill.md');
-    assertDeletedWithRetry(expectedPresetFile, 'Preset file not deleted by cleanup hook');
+    assert.ok(fs.existsSync(expectedPresetFile), 'Preset file should not be deleted from presets folder');
 
-    // Verify that the junction link was deleted
+    // Verify that the active junction link was deleted
     const expectedActiveLink = path.join(activeSkillsDir, 'sandboxed-local-skill');
     assertDeletedWithRetry(expectedActiveLink, 'Junction link not deleted from active projection folder');
   });

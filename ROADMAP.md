@@ -18,6 +18,10 @@ This document outlines the planned features, enhancements, and architectural mil
 
 * Add support for local project-specific presets inside `.skillsman/presets/` that can overlay or extend global presets.
 
+### 4. 📦 Robust Skill Storage for Delegated CLIs
+
+* Standardize storage structures and environment overrides (`HOME`, `USERPROFILE`, XDG paths) to ensure perfect compatibility when executing the official `skills` CLI across different terminal environments, node versions, and package managers. See [Robust Skill Storage Spec](docs/robust_skill_storage.md) for full design.
+
 ---
 
 ## 🚀 Medium-Term Goals (v1+)

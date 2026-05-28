@@ -1101,34 +1101,12 @@ function usePresets(presetArgs = [], agentKeys = ['default'], isGlobal = IS_TEST
 }
 
 /**
- * Cleans up uninstalled skills from the library and presets, then synchronizes active links.
+ * Cleans up uninstalled skills by deactivating them from the active presets of the default agent, then synchronizes active links.
  * @param {string[]} [removedSkills] - List of removed skills
  * @param {boolean} [isGlobal] - Scope flag
  * @returns {void}
  */
 function cleanRemovedSkillsAndPresets(removedSkills = [], isGlobal = IS_TEST_ENV) {
-  const libraryDir = getLibraryDir();
-  const presetsDir = getPresetsDir();
-
-  if (isGlobal) {
-    // In global mode, completely uninstall the physical packages and presets from the system
-    for (const skill of removedSkills) {
-      // 1. Clean physical library folder
-      const skillPath = path.join(libraryDir, skill);
-      if (fs.existsSync(skillPath)) {
-        fs.rmSync(skillPath, { recursive: true, force: true });
-        console.log(`  \x1b[31m- Cleaned physical skill from library:\x1b[0m ${skill}`);
-      }
-
-      // 2. Clean preset file
-      const presetPath = path.join(presetsDir, `${skill}.md`);
-      if (fs.existsSync(presetPath)) {
-        fs.unlinkSync(presetPath);
-        console.log(`  \x1b[31m- Cleaned obsolete preset:\x1b[0m ${skill}.md`);
-      }
-    }
-  }
-
   // Deactivate the removed skills from the activePresets of the default agent in the current state
   try {
     const state = loadState(isGlobal);
@@ -1145,7 +1123,7 @@ function cleanRemovedSkillsAndPresets(removedSkills = [], isGlobal = IS_TEST_ENV
     }
   } catch (err) { }
 
-  // 3. Sync junctions to match new state
+  // Sync junctions to match new state
   syncState(isGlobal);
 }
 
