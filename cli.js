@@ -33,12 +33,21 @@ function main() {
   program
     .name(pkg.name)
     .description(pkg.description)
-    .version(pkg.version)
-    .option('-a, --agent <agent...>', 'Target specific AI agents (space-separated or repeated)')
-    .option('-g, --global', 'Operate on the global/user level instead of the local project level');
+    .version(pkg.version, '-v, --version');
+
+  /**
+   * Helper to attach common options to native subcommands.
+   * @param {import('commander').Command} cmd
+   * @returns {import('commander').Command}
+   */
+  const addCommonOptions = (cmd) => {
+    return cmd
+      .option('-a, --agent <agent...>', 'Target specific AI agents (space-separated or repeated)')
+      .option('-g, --global', 'Operate on the global/user level instead of the local project level');
+  };
 
   program.hook('preAction', (thisCommand, actionCommand) => {
-    const opts = program.opts();
+    const opts = actionCommand.opts();
     const cmdName = actionCommand.name();
 
     if (cmdName === 'help') {
@@ -56,10 +65,11 @@ function main() {
       'experimental_sync'
     ];
 
+    if (DELEGATED_COMMANDS.includes(cmdName)) {
+      return;
+    }
+
     if (!opts.global) {
-      if (DELEGATED_COMMANDS.includes(cmdName)) {
-        return;
-      }
       console.error('Error: Work with local skills is not supported. Please use the -g/--global flag.');
       process.exit(1);
     }
@@ -67,13 +77,20 @@ function main() {
 
   // === NATIVE SKILLSMAN PRESET COMMANDS ===
 
-  program
-    .command('collect')
-    .description('Scan active directories for physical skills, collect them to library, create symlinks and presets')
-    .action(() => {
-      const opts = program.opts();
+  addCommonOptions(
+    program
+      .command('collect')
+      .description('Scan active directories for physical skills, collect them to library, create symlinks and presets')
+  ).action(
+    /**
+     * @param {any} options
+     * @param {import('commander').Command} cmd
+     */
+    (options, cmd) => {
+      const opts = cmd.opts();
       skillsman.collect(opts.agent, opts.global);
-    });
+    }
+  );
 
   program
     .command('presets')
@@ -83,53 +100,69 @@ function main() {
       skillsman.listPresets();
     });
 
-  program
-    .command('status')
-    .description('Show active presets and current projection links')
-    .action(() => {
-      const opts = program.opts();
+  addCommonOptions(
+    program
+      .command('status')
+      .description('Show active presets and current projection links')
+  ).action(
+    /**
+     * @param {any} options
+     * @param {import('commander').Command} cmd
+     */
+    (options, cmd) => {
+      const opts = cmd.opts();
       skillsman.showStatus(opts.agent, opts.global);
-    });
+    }
+  );
 
-  program
-    .command('use')
-    .argument('[presets...]')
-    .description('Activate presets (e.g. use dev planning). Call without arguments to synchronize current state')
-    .action(
-      /**
-       * @param {string[]} presets
-       */
-      (presets) => {
-        const opts = program.opts();
-        skillsman.usePresets(presets, opts.agent, opts.global);
-      }
-    );
+  addCommonOptions(
+    program
+      .command('use')
+      .argument('[presets...]')
+      .description('Activate presets (e.g. use dev planning). Call without arguments to synchronize current state')
+  ).action(
+    /**
+     * @param {string[]} presets
+     * @param {any} options
+     * @param {import('commander').Command} cmd
+     */
+    (presets, options, cmd) => {
+      const opts = cmd.opts();
+      skillsman.usePresets(presets, opts.agent, opts.global);
+    }
+  );
 
-  program
-    .command('activate <presets...>')
-    .description('Incrementally add presets to current active ones')
-    .action(
-      /**
-       * @param {string[]} presets
-       */
-      (presets) => {
-        const opts = program.opts();
-        skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '+' + p), opts.agent, opts.global);
-      }
-    );
+  addCommonOptions(
+    program
+      .command('activate <presets...>')
+      .description('Incrementally add presets to current active ones')
+  ).action(
+    /**
+     * @param {string[]} presets
+     * @param {any} options
+     * @param {import('commander').Command} cmd
+     */
+    (presets, options, cmd) => {
+      const opts = cmd.opts();
+      skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '+' + p), opts.agent, opts.global);
+    }
+  );
 
-  program
-    .command('deactivate <presets...>')
-    .description('Incrementally remove presets from current active ones')
-    .action(
-      /**
-       * @param {string[]} presets
-       */
-      (presets) => {
-        const opts = program.opts();
-        skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '-' + p), opts.agent, opts.global);
-      }
-    );
+  addCommonOptions(
+    program
+      .command('deactivate <presets...>')
+      .description('Incrementally remove presets from current active ones')
+  ).action(
+    /**
+     * @param {string[]} presets
+     * @param {any} options
+     * @param {import('commander').Command} cmd
+     */
+    (presets, options, cmd) => {
+      const opts = cmd.opts();
+      skillsman.usePresets(presets.map(p => p.startsWith('+') || p.startsWith('-') ? p : '-' + p), opts.agent, opts.global);
+    }
+  );
 
   // === DELEGATED ORIGINAL SKILLS COMMANDS ===
 

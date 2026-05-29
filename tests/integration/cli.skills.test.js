@@ -223,4 +223,43 @@ describe('CLI Skills Delegation Integration Tests', () => {
     const expectedActiveLink = path.join(activeSkillsDir, 'sandboxed-local-skill');
     assertDeletedWithRetry(expectedActiveLink, 'Junction link not deleted from active projection folder');
   });
+
+  it('5. should support custom version option flag -v or --version', () => {
+    const versionOutputShort = execSync(`node "${cliPath}" -v`, { env: testEnv, encoding: 'utf8' }).trim();
+    const versionOutputLong = execSync(`node "${cliPath}" --version`, { env: testEnv, encoding: 'utf8' }).trim();
+    const pkg = require('../../package.json');
+    assert.strictEqual(versionOutputShort, pkg.version);
+    assert.strictEqual(versionOutputLong, pkg.version);
+  });
+
+  it('6. should reject global flags specified before the subcommand name, matching original skills behavior', () => {
+    // 1. "skillsman -g ls" should fail with exit code 1 due to unknown global option
+    try {
+      execSync(`node "${cliPath}" -g ls`, { cwd: sandboxPath, env: testEnv, stdio: 'pipe' });
+      assert.fail('Should have failed when global flag -g was passed before subcommand ls');
+    } catch (err) {
+      assert.strictEqual(err.status, 1);
+      assert.ok(err.stderr.toString().includes("error: unknown option"));
+    }
+
+    // 2. "skillsman -p ls" should fail with exit code 1 due to unknown global option
+    try {
+      execSync(`node "${cliPath}" -p ls`, { cwd: sandboxPath, env: testEnv, stdio: 'pipe' });
+      assert.fail('Should have failed when unknown flag -p was passed before subcommand ls');
+    } catch (err) {
+      assert.strictEqual(err.status, 1);
+      assert.ok(err.stderr.toString().includes("error: unknown option"));
+    }
+
+    // 3. "skillsman ls -g" should succeed and output global skills
+    const listOutput = execSync(`node "${cliPath}" ls -g`, {
+      cwd: sandboxPath,
+      env: testEnv,
+      encoding: 'utf8'
+    });
+    assert.ok(
+      listOutput.includes('Global Skills'),
+      'Delegated list command failed to run in global mode when -g was specified after subcommand name'
+    );
+  });
 });

@@ -61,3 +61,7 @@ Full coding conventions are documented in [**`docs/developer_guide.md`**](docs/d
 * **Never** leave version sections empty in `CHANGELOG.md`.
 * **User-Facing Changes Only**: Document only user-facing features, bug fixes, configuration additions, and API/CLI changes. **Never** include internal developer instructions, changes to `AGENTS.md`, or test-suite setup modifications in the public `CHANGELOG.md`.
 * Always remind the user to update the changelog details first before performing a version increment.
+
+### 7. Explicit Alignment Before Action
+
+* **No Premature Execution**: If the user asks "How will we fix it?" or requests a design discussion, the agent **MUST** first describe the proposed solution and wait for the user's explicit confirmation **before** modifying any files or running commands that alter the codebase state.

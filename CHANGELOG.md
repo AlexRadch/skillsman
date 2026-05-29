@@ -19,6 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Removed Local Skills Support**: Native preset commands (`collect`, `use`, `status`, `activate`, `deactivate`, `presets`) now strictly require the `-g / --global` flag. Executing these commands without the global flag prints an unsupported error message and exits with status code 1.
 - **Global Fallback for Delegated Commands**: Configured delegated `skills` CLI commands (like `list`, `add`, `remove`, `init`) to run successfully both with and without the `-g` flag, while all their pre-hooks, post-hooks, and sandboxed environments internally operate in global-only mode.
+- **Unified CLI Version Flag Style**: Changed the version option flag from uppercase `-V` to lowercase `-v` (using custom Commander version flags `-v, --version`) to match the original `skills` CLI style.
+- **Aligned CLI Option Parsing Style with Original skills**: Refactored `-g / --global` and `-a / --agent` options from the global program level to specific subcommand levels in `cli.js`, matching the original `skills` CLI parsing style perfectly. Passing global flags before command names (e.g. `skillsman -g ls`) is now rejected with standard `error: unknown option` just like in the original CLI. Delegated commands now transparently forward original command-line arguments using simple `process.argv` slicing without complex interception or flag propagation.
+
+### Fixed
+
+- **Robust Unknown Flag and Ordering Validation**: Added comprehensive integration test assertions validating that misplaced options (like `-g` or `-p` specified before command name) are correctly rejected with exit code 1, guaranteeing strict compatibility with the official `skills` tool.
 
 ## [0.5.0] - 2026-05-27
 
