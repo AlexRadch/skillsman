@@ -1088,7 +1088,6 @@ function delegateToSkillsCLI(command, args = [], isGlobal = IS_TEST_ENV) {
 
   const sandboxedEnv = {
     ...process.env,
-    XDG_STATE_HOME: xdgStateHome,
     XDG_DATA_HOME: xdgDataHome,
     HOME: skillsHome,
     USERPROFILE: skillsHome,
@@ -1096,6 +1095,8 @@ function delegateToSkillsCLI(command, args = [], isGlobal = IS_TEST_ENV) {
     LOCALAPPDATA: xdgStateHome,
     APPDATA: xdgStateHome
   };
+
+  delete sandboxedEnv.XDG_STATE_HOME;
 
   // Pre-execution hook for remove:
   // The official skills CLI only scans real directories (ignores junctions/symlinks).

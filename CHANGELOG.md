@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Delegated environment lock resolution**: Fixed an issue where the delegated `skills` CLI failed to find the `.skill-lock.json` lock file (causing missing skill descriptions and preventing skill grouping in lists) by explicitly deleting `XDG_STATE_HOME` from the sandboxed environment to ensure fallback to standard `.agents/` layout.
 - **Robust Unknown Flag and Ordering Validation**: Added comprehensive integration test assertions validating that misplaced options (like `-g` or `-p` specified before command name) are correctly rejected with exit code 1, guaranteeing strict compatibility with the official `skills` tool.
 
 ## [0.5.0] - 2026-05-27

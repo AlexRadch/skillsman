@@ -177,6 +177,46 @@ describe('CLI Skills Delegation Integration Tests', () => {
     assert.strictEqual(localSkill.scope, 'global');
   });
 
+  it('3b. should read .skill-lock.json from fallback location (.agents/.skill-lock.json) and group skills even if XDG_STATE_HOME is passed in environment', () => {
+    // 1. Create a fake .skill-lock.json in sandboxed fallback location (parent of LIBRARY_DIR)
+    const currentPaths = skillsman.tests.getPaths();
+    const fakeLockPath = path.join(path.dirname(currentPaths.LIBRARY_DIR), '.skill-lock.json');
+    const fakeLockContent = JSON.stringify({
+      version: 3,
+      skills: {
+        'sandboxed-local-skill': {
+          source: 'mattpocock/skills',
+          sourceType: 'github',
+          sourceUrl: 'https://github.com/mattpocock/skills.git',
+          skillPath: 'skills/productivity/grill-me/SKILL.md',
+          skillFolderHash: '2a1ad17028306ebe45f0e49703fa28b9b2e7f499',
+          pluginName: 'mattpocock-skills',
+          installedAt: '2026-05-22T14:18:49.611Z',
+          updatedAt: '2026-05-22T14:18:49.611Z'
+        }
+      }
+    }, null, 2);
+    
+    fs.writeFileSync(fakeLockPath, fakeLockContent, 'utf8');
+
+    // 2. Run delegated list command with XDG_STATE_HOME set in environment
+    const listOutput = execSync(`node "${cliPath}" list -g`, {
+      cwd: sandboxPath,
+      env: {
+        ...testEnv,
+        XDG_STATE_HOME: path.join(sandboxPath, 'should-be-ignored-xdg-state') // Fake path that does not contain .skill-lock.json
+      },
+      encoding: 'utf8'
+    });
+
+    // 3. Since XDG_STATE_HOME was successfully deleted, skills read .skill-lock.json from agentsHome
+    // and grouped the skill under "Mattpocock Skills" instead of "General" or listing it ungrouped.
+    assert.ok(
+      listOutput.includes('Mattpocock Skills'),
+      'Delegated list command failed to group skills under Mattpocock Skills when XDG_STATE_HOME was passed in environment'
+    );
+  });
+
   it('4. should delegate "remove" to delete local skill and trigger auto-preset clean-up hook', () => {
     // Run "cli.js remove sandboxed-local-skill -y"
     console.log('  [Test] Running: cli.js remove sandboxed-local-skill -y');
