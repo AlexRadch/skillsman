@@ -217,7 +217,25 @@ describe('CLI Skills Delegation Integration Tests', () => {
     );
   });
 
-  it('4. should delegate "remove" to delete local skill and trigger auto-preset clean-up hook', () => {
+  it('4. should delegate "remove" to delete local skill and trigger auto-preset clean-up hook with reference-based retention', () => {
+    const currentPaths = skillsman.tests.getPaths();
+
+    // Back up the physical skill directory before removal
+    const backupPath = path.join(sandboxPath, 'sandboxed-local-skill-backup');
+    fs.cpSync(path.join(currentPaths.LIBRARY_DIR, 'sandboxed-local-skill'), backupPath, { recursive: true });
+
+    // 1. Create another preset that references sandboxed-local-skill to test retention
+    const anotherPresetFile = path.join(currentPaths.PRESETS_DIR, 'another-preset.md');
+    const anotherPresetContent = [
+      '---',
+      'name: another-preset',
+      'description: "Another test preset"',
+      'skills:',
+      '  - sandboxed-local-skill',
+      '---'
+    ].join('\n');
+    fs.writeFileSync(anotherPresetFile, anotherPresetContent, 'utf8');
+
     // Run "cli.js remove sandboxed-local-skill -y"
     console.log('  [Test] Running: cli.js remove sandboxed-local-skill -y');
     try {
@@ -237,8 +255,6 @@ describe('CLI Skills Delegation Integration Tests', () => {
       throw err;
     }
 
-    const currentPaths = skillsman.tests.getPaths();
-
     // Helper to wait until a file/folder is fully deleted on Windows due to asynchronous/laggy filesystem handles
     const assertDeletedWithRetry = (filePath, message) => {
       let exists = true;
@@ -251,17 +267,28 @@ describe('CLI Skills Delegation Integration Tests', () => {
       assert.ok(!exists, message);
     };
 
-    // Verify that the physical folder inside library was NOT deleted and is kept safe
+    // Scenario 1: Referenced by "another-preset", so it MUST be retained!
     const expectedLibraryDir = path.join(currentPaths.LIBRARY_DIR, 'sandboxed-local-skill');
-    assert.ok(fs.existsSync(expectedLibraryDir), 'Physical skill folder should not be deleted from sandboxed library');
-
-    // Verify that the preset file was NOT deleted
+    const expectedStoreDir = path.join(currentPaths.STORE_DIR, 'sandboxed-local-skill');
     const expectedPresetFile = path.join(currentPaths.PRESETS_DIR, 'sandboxed-local-skill.md');
-    assert.ok(fs.existsSync(expectedPresetFile), 'Preset file should not be deleted from presets folder');
+
+    assert.ok(fs.existsSync(expectedLibraryDir), 'Physical skill folder should be retained in library as it is referenced');
+    assert.ok(fs.existsSync(expectedStoreDir), 'Physical skill folder should be retained in store as it is referenced');
+    assert.ok(fs.existsSync(expectedPresetFile), 'Preset file should be retained as it is referenced');
 
     // Verify that the active junction link was deleted
     const expectedActiveLink = path.join(activeSkillsDir, 'sandboxed-local-skill');
     assertDeletedWithRetry(expectedActiveLink, 'Junction link not deleted from active projection folder');
+
+    // Scenario 2: Delete the referencing preset, then run cleanup. It should be fully deleted!
+    fs.unlinkSync(anotherPresetFile);
+
+    // Call cleanRemovedSkillsAndPresets directly to clean up now that references are gone
+    skillsman.tests.cleanRemovedSkillsAndPresets(['sandboxed-local-skill'], true);
+
+    assertDeletedWithRetry(expectedLibraryDir, 'Physical skill folder not deleted from library after references removed');
+    assertDeletedWithRetry(expectedStoreDir, 'Physical skill folder not deleted from store after references removed');
+    assertDeletedWithRetry(expectedPresetFile, 'Preset file not deleted from presets after references removed');
   });
 
   it('5. should support custom version option flag -v or --version', () => {
@@ -273,6 +300,54 @@ describe('CLI Skills Delegation Integration Tests', () => {
   });
 
   it('6. should reject global flags specified before the subcommand name, matching original skills behavior', () => {
+    const currentPaths = skillsman.tests.getPaths();
+    const backupPath = path.join(sandboxPath, 'sandboxed-local-skill-backup');
+
+    // Restore the genuine skill folder to both LIBRARY_DIR and STORE_DIR from backup
+    const expectedLibraryDir = path.join(currentPaths.LIBRARY_DIR, 'sandboxed-local-skill');
+    const expectedStoreDir = path.join(currentPaths.STORE_DIR, 'sandboxed-local-skill');
+    const expectedActiveLink = path.join(activeSkillsDir, 'sandboxed-local-skill');
+
+    if (fs.existsSync(backupPath)) {
+      if (fs.existsSync(expectedLibraryDir)) fs.rmSync(expectedLibraryDir, { recursive: true, force: true });
+      fs.cpSync(backupPath, expectedLibraryDir, { recursive: true });
+
+      if (fs.existsSync(expectedStoreDir)) fs.rmSync(expectedStoreDir, { recursive: true, force: true });
+      fs.cpSync(backupPath, expectedStoreDir, { recursive: true });
+
+      if (fs.existsSync(expectedActiveLink)) fs.rmSync(expectedActiveLink, { recursive: true, force: true });
+      fs.cpSync(backupPath, expectedActiveLink, { recursive: true });
+    }
+
+    // Write a fake .skill-lock.json with valid pluginName for sandboxed-local-skill
+    const fakeLockContent = JSON.stringify({
+      version: 3,
+      skills: {
+        'sandboxed-local-skill': {
+          source: 'mattpocock/skills',
+          sourceType: 'github',
+          sourceUrl: 'https://github.com/mattpocock/skills.git',
+          skillPath: 'skills/productivity/grill-me/SKILL.md',
+          skillFolderHash: '2a1ad17028306ebe45f0e49703fa28b9b2e7f499',
+          pluginName: 'mattpocock-skills',
+          installedAt: '2026-05-22T14:18:49.611Z',
+          updatedAt: '2026-05-22T14:18:49.611Z'
+        }
+      }
+    }, null, 2);
+
+    // 1. Fallback path
+    const fakeLockPath = path.join(path.dirname(currentPaths.LIBRARY_DIR), '.skill-lock.json');
+    fs.writeFileSync(fakeLockPath, fakeLockContent, 'utf8');
+
+    // 2. LOCALAPPDATA path
+    const localAppDataLockDir = path.join(xdgStateHome, 'skillsman', '.agents');
+    if (!fs.existsSync(localAppDataLockDir)) {
+      fs.mkdirSync(localAppDataLockDir, { recursive: true });
+    }
+    const localAppDataLockPath = path.join(localAppDataLockDir, '.skill-lock.json');
+    fs.writeFileSync(localAppDataLockPath, fakeLockContent, 'utf8');
+
     // 1. "skillsman -g ls" should fail with exit code 1 due to unknown global option
     try {
       execSync(`node "${cliPath}" -g ls`, { cwd: sandboxPath, env: testEnv, stdio: 'pipe' });
@@ -297,6 +372,9 @@ describe('CLI Skills Delegation Integration Tests', () => {
       env: testEnv,
       encoding: 'utf8'
     });
+    console.log('--- DIAGNOSTIC LISTOUTPUT START ---');
+    console.log(listOutput);
+    console.log('--- DIAGNOSTIC LISTOUTPUT END ---');
     assert.ok(
       listOutput.includes('Global Skills'),
       'Delegated list command failed to run in global mode when -g was specified after subcommand name'

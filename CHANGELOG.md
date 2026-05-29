@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Pristine Skills Storage Store (Vault)**: Introduced a robust skills backup storage directory at `XDG_DATA_HOME/skillsman/skills/` (`STORE_DIR`) to serve as the single pristine source of truth for user-installed skills, preventing accidental deletions or modifications when delegated commands operate in `~/.agents/skills/`.
+- **Reference-Based Skill Retention on Removal**: Overhauled post-removal hook logic to retain a skill's files in the backup `STORE_DIR` and restore them to `LIBRARY_DIR` if the skill remains referenced by other active or registered presets, preventing breaking dependencies.
+- **Automated Skill Restoration**: Integrated automatic repair/restoration of missing skills from the pristine backup `STORE_DIR` to `LIBRARY_DIR` during preset state synchronization.
+- **Pristine Preset Auto-Generation**: Updated collection hooks to automatically discover skills and generate corresponding presets directly from the pristine `STORE_DIR` storage folder.
 - **Enforced Global-Only State and Symlink Logic**: All internal state loading, saving, path resolutions, and symlink projections are now executed strictly on the global level (`~/.config/skillsman/`, `~/.local/state/skillsman/`, `~/.local/share/skillsman/`), completely removing the deprecated local project scope state files and fallback code.
 
 ### Changed

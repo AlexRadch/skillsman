@@ -75,6 +75,7 @@ function getXdgDataHome(platform = process.platform, env = process.env, home = o
 let AGENTS_DIR = path.join(USER_HOME, '.agents');
 let SKILLS_DIR = path.join(AGENTS_DIR, 'skills');
 let LIBRARY_DIR = path.join(getXdgDataHome(), 'skillsman', '.agents', 'skills');
+let STORE_DIR = path.join(getXdgDataHome(), 'skillsman', 'skills');
 let PRESETS_DIR = path.join(getXdgConfigHome(), 'skillsman', 'presets');
 let STATE_FILE = path.join(getXdgStateHome(), 'skillsman', 'state.json');
 
@@ -101,6 +102,14 @@ function getPresetsDir() {
  */
 function getLibraryDir() {
   return LIBRARY_DIR;
+}
+
+/**
+ * Resolves the skills store directory path.
+ * @returns {string} The absolute path to skills store directory
+ */
+function getStoreDir() {
+  return STORE_DIR;
 }
 
 /** @type {Record<string, { projectPath: string, globalPath: string, projectKey: string, globalKey: string }>} */
@@ -228,6 +237,7 @@ function setTestEnv(sandboxPath) {
 
   // Set sandboxed XDG folders under sandboxPath
   LIBRARY_DIR = path.join(sandboxPath, 'data', 'skillsman', '.agents', 'skills');
+  STORE_DIR = path.join(sandboxPath, 'data', 'skillsman', 'skills');
   PRESETS_DIR = path.join(sandboxPath, 'config', 'skillsman', 'presets');
   STATE_FILE = path.join(sandboxPath, 'state', 'skillsman', 'state.json');
 }
@@ -502,16 +512,41 @@ function collect(agentKeys, isGlobal = IS_TEST_ENV) {
     console.log(`\x1b[32m✔\x1b[0m Created library folder: ${libraryDir}`);
   }
 
+  const storeDir = getStoreDir();
+  if (!fs.existsSync(storeDir)) {
+    fs.mkdirSync(storeDir, { recursive: true });
+    console.log(`\x1b[32m✔\x1b[0m Created skills store folder: ${storeDir}`);
+  }
+
   if (!fs.existsSync(presetsDir)) {
     fs.mkdirSync(presetsDir, { recursive: true });
     console.log(`\x1b[32m✔\x1b[0m Created presets folder: ${presetsDir}`);
   }
 
-  // 1b. Automatically generate presets for any skills already residing in the library
+  // 1b. Copy any physical directories in libraryDir (e.g. added by delegated "skills add") to storeDir
   if (fs.existsSync(libraryDir)) {
     const libraryItems = fs.readdirSync(libraryDir);
     for (const item of libraryItems) {
-      const itemPath = path.join(libraryDir, item);
+      const libItemPath = path.join(libraryDir, item);
+      const storePath = path.join(storeDir, item);
+      try {
+        const stat = fs.lstatSync(libItemPath);
+        if (stat.isDirectory() && !stat.isSymbolicLink()) {
+          if (fs.existsSync(storePath)) {
+            fs.rmSync(storePath, { recursive: true, force: true });
+          }
+          fs.cpSync(libItemPath, storePath, { recursive: true });
+          console.log(`  \x1b[32m✔\x1b[0m Backed up skill to store: ${item}`);
+        }
+      } catch (err) { }
+    }
+  }
+
+  // 1c. Automatically generate presets for any skills already residing in the store
+  if (fs.existsSync(storeDir)) {
+    const storeItems = fs.readdirSync(storeDir);
+    for (const item of storeItems) {
+      const itemPath = path.join(storeDir, item);
       try {
         const stat = fs.lstatSync(itemPath);
         if (stat.isDirectory() && !stat.isSymbolicLink()) {
@@ -547,7 +582,7 @@ function collect(agentKeys, isGlobal = IS_TEST_ENV) {
             ].join('\n');
 
             fs.writeFileSync(presetPath, presetContent, 'utf8');
-            console.log(`  \x1b[32m✔\x1b[0m Generated preset for library skill: ${item}.md`);
+            console.log(`  \x1b[32m✔\x1b[0m Generated preset for store skill: ${item}.md`);
           }
         }
       } catch (err) {
@@ -594,23 +629,30 @@ function collect(agentKeys, isGlobal = IS_TEST_ENV) {
         console.log(`  \x1b[33m⚡ Found physical folder to collect in [${skillsDir}]:\x1b[0m ${item}`);
 
         const targetPath = path.join(libraryDir, item);
+        const storePath = path.join(storeDir, item);
 
-        // If already exists in library, remove the one in active directory and replace it with a symlink
+        // If already exists in library or store, remove them first
+        if (fs.existsSync(storePath)) {
+          fs.rmSync(storePath, { recursive: true, force: true });
+        }
         if (fs.existsSync(targetPath)) {
           console.warn(`  \x1b[33m⚠ Already exists in library:\x1b[0m ${item}. Overwriting library folder.`);
           fs.rmSync(targetPath, { recursive: true, force: true });
         }
 
-        // Move directory to library
+        // Move directory to store
         try {
-          fs.renameSync(itemPath, targetPath);
+          fs.renameSync(itemPath, storePath);
         } catch (err) {
           // Fallback if cross-device link error
-          fs.cpSync(itemPath, targetPath, { recursive: true });
+          fs.cpSync(itemPath, storePath, { recursive: true });
           fs.rmSync(itemPath, { recursive: true, force: true });
         }
+        console.log(`  \x1b[32m✔\x1b[0m Moved to skills store: ${item}`);
 
-        console.log(`  \x1b[32m✔\x1b[0m Moved to library: ${item}`);
+        // Copy from store to library
+        fs.cpSync(storePath, targetPath, { recursive: true });
+        console.log(`  \x1b[32m✔\x1b[0m Copied to library: ${item}`);
 
         // Auto-generate preset file for this skill if it doesn't exist
         const presetPath = path.join(presetsDir, `${item}.md`);
@@ -619,7 +661,7 @@ function collect(agentKeys, isGlobal = IS_TEST_ENV) {
           let description = `Automatically collected preset for ${item} skill`;
 
           // Attempt to parse SKILL.md to extract metadata
-          const skillMdPath = path.join(targetPath, 'SKILL.md');
+          const skillMdPath = path.join(storePath, 'SKILL.md');
           if (fs.existsSync(skillMdPath)) {
             try {
               const skillContent = fs.readFileSync(skillMdPath, 'utf8');
@@ -794,6 +836,7 @@ function syncState(isGlobal = IS_TEST_ENV) {
   const multiState = loadState(isGlobal);
   const presetsDir = getPresetsDir();
   const libraryDir = getLibraryDir();
+  const storeDir = getStoreDir();
 
 
   for (const key of Object.keys(multiState)) {
@@ -884,9 +927,16 @@ function syncState(isGlobal = IS_TEST_ENV) {
       }
 
       // Validate physical existence in library before creating link
+      // If missing in libraryDir but exists in STORE_DIR, restore it!
       if (!fs.existsSync(targetPath)) {
-        console.error(`\x1b[31mError: Skill "${skillName}" is not found in library directory ${libraryDir}.\x1b[0m`);
-        continue;
+        const storePath = path.join(storeDir, skillName);
+        if (fs.existsSync(storePath)) {
+          fs.cpSync(storePath, targetPath, { recursive: true });
+          console.log(`  \x1b[32m✔\x1b[0m Restored skill from store to library: ${skillName}`);
+        } else {
+          console.error(`\x1b[31mError: Skill "${skillName}" is not found in library directory ${libraryDir}.\x1b[0m`);
+          continue;
+        }
       }
 
       // Create link
@@ -1037,6 +1087,32 @@ function usePresets(presetArgs = [], agentKeys = ['default'], isGlobal = IS_TEST
 }
 
 /**
+ * Checks if a skill is referenced in any existing preset (excluding the skill's own preset file)
+ * @param {string} skillName
+ * @returns {boolean}
+ */
+function isSkillReferencedInPresets(skillName) {
+  const presetsDir = getPresetsDir();
+  if (!fs.existsSync(presetsDir)) return false;
+
+  const files = fs.readdirSync(presetsDir);
+  for (const file of files) {
+    if (!file.endsWith('.md')) continue;
+    const presetName = path.basename(file, '.md');
+    // Skip the skill's own auto-generated preset
+    if (presetName === skillName) continue;
+
+    try {
+      const skills = loadSkillsFromPreset(presetName);
+      if (skills.includes(skillName)) {
+        return true;
+      }
+    } catch (e) {}
+  }
+  return false;
+}
+
+/**
  * Cleans up uninstalled skills by deactivating them from the active presets of the default agent, then synchronizes active links.
  * @param {string[]} [removedSkills] - List of removed skills
  * @param {boolean} [isGlobal] - Scope flag
@@ -1047,6 +1123,11 @@ function cleanRemovedSkillsAndPresets(removedSkills = [], isGlobal = IS_TEST_ENV
     console.error('Error: Work with local skills is not supported. Please use the -g/--global flag.');
     return;
   }
+
+  const libraryDir = getLibraryDir();
+  const storeDir = getStoreDir();
+  const presetsDir = getPresetsDir();
+
   // Deactivate the removed skills from the activePresets of the default agent in the current state
   try {
     const state = loadState(isGlobal);
@@ -1062,6 +1143,39 @@ function cleanRemovedSkillsAndPresets(removedSkills = [], isGlobal = IS_TEST_ENV
       saveState(state, isGlobal);
     }
   } catch (err) { }
+
+  // Process physical removal/retention
+  for (const skill of removedSkills) {
+    const targetPath = path.join(libraryDir, skill);
+    const storePath = path.join(storeDir, skill);
+
+    if (isSkillReferencedInPresets(skill)) {
+      // Restore to libraryDir since it's referenced in other presets
+      if (fs.existsSync(storePath)) {
+        if (fs.existsSync(targetPath)) {
+          fs.rmSync(targetPath, { recursive: true, force: true });
+        }
+        fs.cpSync(storePath, targetPath, { recursive: true });
+        console.log(`\n\x1b[36m[skillsman] Retained skill "${skill}" in store and restored to library (referenced by other presets)\x1b[0m`);
+      }
+    } else {
+      // Remove from store
+      if (fs.existsSync(storePath)) {
+        fs.rmSync(storePath, { recursive: true, force: true });
+        console.log(`\n\x1b[31m[skillsman] Removed skill "${skill}" from store (not referenced by any presets)\x1b[0m`);
+      }
+      // Remove from libraryDir too (just in case)
+      if (fs.existsSync(targetPath)) {
+        fs.rmSync(targetPath, { recursive: true, force: true });
+      }
+      // Delete auto-generated preset
+      const presetPath = path.join(presetsDir, `${skill}.md`);
+      if (fs.existsSync(presetPath)) {
+        fs.unlinkSync(presetPath);
+        console.log(`  \x1b[31m- Removed auto-generated preset:\x1b[0m ${skill}.md`);
+      }
+    }
+  }
 
   // Sync junctions to match new state
   syncState(isGlobal);
@@ -1086,6 +1200,7 @@ function delegateToSkillsCLI(command, args = [], isGlobal = IS_TEST_ENV) {
 
   const skillsHome = path.dirname(xdgDataHome);
 
+  /** @type {Record<string, string | undefined>} */
   const sandboxedEnv = {
     ...process.env,
     XDG_DATA_HOME: xdgDataHome,
@@ -1249,6 +1364,7 @@ module.exports = {
       AGENTS_DIR,
       SKILLS_DIR,
       LIBRARY_DIR: getLibraryDir(),
+      STORE_DIR: getStoreDir(),
       PRESETS_DIR: getPresetsDir(),
       STATE_FILE: getStateFile(true)
     })

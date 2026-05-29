@@ -1,7 +1,7 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const path = require('path');
-const { getXdgConfigHome, getXdgStateHome, getXdgDataHome, getAgentSkillsDir, getAgentConfigKey } = require('../../index').tests;
+const { getXdgConfigHome, getXdgStateHome, getXdgDataHome, getAgentSkillsDir, getAgentConfigKey, getPaths, setTestEnv } = require('../../index').tests;
 
 describe('XDG Path Resolution Unit Tests', () => {
   const dummyHome = '/user/alex';
@@ -141,6 +141,15 @@ describe('XDG Path Resolution Unit Tests', () => {
       assert.strictEqual(getAgentSkillsDir('replit', dummyHome), expectedPath);
       assert.strictEqual(getAgentSkillsDir('universal', dummyHome), expectedPath);
       assert.strictEqual(getAgentSkillsDir('config_agents', dummyHome), expectedPath);
+    });
+  });
+
+  describe('getPaths', () => {
+    it('should return paths structure including STORE_DIR', () => {
+      const paths = getPaths();
+      assert.ok(paths.STORE_DIR, 'STORE_DIR is missing in getPaths()');
+      assert.ok(paths.LIBRARY_DIR, 'LIBRARY_DIR is missing in getPaths()');
+      assert.ok(paths.PRESETS_DIR, 'PRESETS_DIR is missing in getPaths()');
     });
   });
 });
