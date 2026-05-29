@@ -43,7 +43,8 @@ function main() {
   const addCommonOptions = (cmd) => {
     return cmd
       .option('-a, --agent <agent...>', 'Target specific AI agents (space-separated or repeated)')
-      .option('-g, --global', 'Operate on the global/user level instead of the local project level');
+      .option('-g, --global', 'Operate on the global/user level instead of the local project level')
+      .option('-p, --project', 'Operate on the local project level');
   };
 
   program.hook('preAction', (thisCommand, actionCommand) => {

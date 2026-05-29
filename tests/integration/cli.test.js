@@ -457,7 +457,7 @@ skills:
     assert.ok(output.includes('Work with local skills is not supported. Please use the -g/--global flag.'));
   });
 
-  it('22. should print error and exit with 1 when running native CLI command without -g option', () => {
+  it('22. should print error and exit with 1 when running native CLI command without -g option, or with only -p option', () => {
     const cliPath = path.resolve(__dirname, '..', '..', 'cli.js');
     const sandboxEnv = {
       ...process.env,
@@ -470,6 +470,7 @@ skills:
       HOME: sandboxPath
     };
 
+    // 1. Without -g or -p
     try {
       execSync(`node "${cliPath}" use presetB`, { env: sandboxEnv, stdio: 'pipe' });
       assert.fail('Should have exited with code 1 due to missing global flag');
@@ -478,6 +479,19 @@ skills:
       const stderr = err.stderr.toString();
       assert.ok(stderr.includes('Work with local skills is not supported. Please use the -g/--global flag.'));
     }
+
+    // 2. With only -p
+    try {
+      execSync(`node "${cliPath}" use presetB -p`, { env: sandboxEnv, stdio: 'pipe' });
+      assert.fail('Should have exited with code 1 due to missing global flag');
+    } catch (err) {
+      assert.strictEqual(err.status, 1);
+      const stderr = err.stderr.toString();
+      assert.ok(stderr.includes('Work with local skills is not supported. Please use the -g/--global flag.'));
+    }
+
+    // 3. With both -g and -p (should succeed)
+    execSync(`node "${cliPath}" use presetB -g -p`, { env: sandboxEnv, stdio: 'pipe' });
   });
 
   it('23. should update only the global state file when running with -g / --global option', () => {

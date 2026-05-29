@@ -261,5 +261,34 @@ describe('CLI Skills Delegation Integration Tests', () => {
       listOutput.includes('Global Skills'),
       'Delegated list command failed to run in global mode when -g was specified after subcommand name'
     );
+
+    // 4. "skillsman ls -g -p" should succeed and output global skills (since -g overrides -p)
+    const listOutputGp = execSync(`node "${cliPath}" ls -g -p`, {
+      cwd: sandboxPath,
+      env: testEnv,
+      encoding: 'utf8'
+    });
+    assert.ok(listOutputGp.includes('Global Skills'));
+
+    // 5. "skillsman ls -p -g" should succeed and output global skills (since -g overrides -p)
+    const listOutputPg = execSync(`node "${cliPath}" ls -p -g`, {
+      cwd: sandboxPath,
+      env: testEnv,
+      encoding: 'utf8'
+    });
+    assert.ok(listOutputPg.includes('Global Skills'));
+
+    // 6. "skillsman ls -p" and "skillsman ls" should work identically in local project mode
+    const listOutputP = execSync(`node "${cliPath}" ls -p`, {
+      cwd: sandboxPath,
+      env: testEnv,
+      encoding: 'utf8'
+    });
+    const listOutputNone = execSync(`node "${cliPath}" ls`, {
+      cwd: sandboxPath,
+      env: testEnv,
+      encoding: 'utf8'
+    });
+    assert.strictEqual(listOutputP, listOutputNone);
   });
 });
