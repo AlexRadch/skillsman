@@ -5,3 +5,9 @@ Thumbs.db
 
 # Test sandboxes
 tests/sandbox-*/
+
+# Local untracked files
+.local/
+.agents/
+
+
