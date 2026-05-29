@@ -16,19 +16,18 @@ By acting as a **Unified CLI wrapper** and drop-in enhancement for the official 
 
 `skillsman` acts as a smart, zero-conflict projection layer between your physical skills store and active AI agents (like Claude Code, Cursor, Cline, Copilot, etc.), strictly conforming to the cross-platform **XDG Base Directory Specification**.
 
-It defaults to **Local Project Scope** to isolate workspaces, with an option to toggle **Global Scope** via `-g / --global`:
+It operates exclusively in **Global Scope** via the required `-g / --global` flag:
 
 ```mermaid
 graph TD
     classDef folder fill:#2a2f35,stroke:#3b4252,stroke-width:2px,color:#d8dee9;
     classDef file fill:#3b4252,stroke:#4c566a,stroke-width:1px,color:#eceff4;
 
-    AGENTS[📂 Project: ./.agents]:::folder
-    SKILLS[📂 Project Active Projections: ./.agents/skills]:::folder
+    AGENTS[📂 User Home: ~/.agents]:::folder
+    SKILLS[📂 Global Active Projections: ~/.agents/skills]:::folder
     
     CONF[📂 Config: XDG_CONFIG_HOME/skillsman/presets]:::folder
     DATA[📂 Library: XDG_DATA_HOME/skillsman/.agents/skills]:::folder
-    STATE[📄 Local State: ./.agents/skillsman-state.json]:::file
     GSTATE[📄 Global State: XDG_STATE_HOME/skillsman/state.json]:::file
 
     AGENTS --> SKILLS
@@ -43,11 +42,9 @@ graph TD
 | Directory Type | Scope | Linux / macOS Default | Windows Default | Environment Variable |
 | :--- | :--- | :--- | :--- | :--- |
 | **Presets (Config)** | Global | `~/.config/skillsman/presets/` | `AppData\Roaming\skillsman\presets\` | `XDG_CONFIG_HOME` |
-| **Active State File** | Global (`-g`) | `~/.local/state/skillsman/state.json` | `AppData\Local\skillsman\state.json` | `XDG_STATE_HOME` |
-| **Active State File** | Local (Default) | `./.agents/skillsman-state.json` | `./.agents/skillsman-state.json` | *Fixed Local Path* |
+| **Active State File** | Global | `~/.local/state/skillsman/state.json` | `AppData\Local\skillsman\state.json` | `XDG_STATE_HOME` |
 | **Skills Library (Data)** | Global | `~/.local/share/skillsman/.agents/skills/` | `AppData\Local\skillsman\.agents\skills\` | `XDG_DATA_HOME` |
-| **Active Projections** | Global (`-g`) | `~/.agents/skills/` | `~/.agents/skills/` | *Fixed Global Zone* |
-| **Active Projections** | Local (Default) | `./.agents/skills/` | `./.agents/skills/` | *Fixed Local Zone* |
+| **Active Projections** | Global | `~/.agents/skills/` | `~/.agents/skills/` | *Fixed Global Zone* |
 
 ---
 

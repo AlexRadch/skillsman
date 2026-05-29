@@ -424,7 +424,7 @@ skills:
 
     // Case 1: "-a replit,aider-desk" — no spaces around comma
     try {
-      execSync(`node "${cliPath}" status -a replit,aider-desk`, { env: sandboxEnv, stdio: 'pipe' });
+      execSync(`node "${cliPath}" status -a replit,aider-desk -g`, { env: sandboxEnv, stdio: 'pipe' });
       assert.fail('Should have exited with code 1 for agent "replit,aider-desk"');
     } catch (err) {
       assert.strictEqual(err.status, 1);
@@ -434,7 +434,7 @@ skills:
 
     // Case 2: "-a replit   ,   aider-desk" — spaces around comma (Commander passes as one token)
     try {
-      execSync(`node "${cliPath}" status -a "replit   ,   aider-desk"`, { env: sandboxEnv, stdio: 'pipe' });
+      execSync(`node "${cliPath}" status -a "replit   ,   aider-desk" -g`, { env: sandboxEnv, stdio: 'pipe' });
       assert.fail('Should have exited with code 1 for agent "replit   ,   aider-desk"');
     } catch (err) {
       assert.strictEqual(err.status, 1);
@@ -443,56 +443,40 @@ skills:
     }
   });
 
-  it('21. should dynamically create .agents and save project-specific state locally without -g', () => {
-    // 1. Set working directory to sandbox-integration to simulate running inside a project
-    const originalCwd = process.cwd();
-    process.chdir(sandboxPath);
-
-    // Ensure .agents/ does not exist first
-    const localAgentsDir = path.join(sandboxPath, '.agents');
-    if (fs.existsSync(localAgentsDir)) {
-      fs.rmSync(localAgentsDir, { recursive: true, force: true });
-    }
+  it('21. should print error that local skills are not supported when isGlobal is false programmatically', () => {
+    let output = '';
+    const originalConsoleError = console.error;
+    console.error = (msg) => { output += msg; };
 
     try {
-      // 2. Call usePresets locally (without -g)
-      // Note: we pass isGlobal = false explicitly to override IS_TEST_ENV default
       usePresets(['presetB'], undefined, false);
-
-      // 3. Verify .agents/ and .agents/skillsman-state.json were created successfully
-      const localStateFile = path.join(localAgentsDir, 'skillsman-state.json');
-      assert.ok(fs.existsSync(localAgentsDir), '.agents directory was not created');
-      assert.ok(fs.existsSync(localStateFile), 'skillsman-state.json was not created');
-
-      // 4. Verify local state was saved correctly
-      const localState = JSON.parse(fs.readFileSync(localStateFile, 'utf8'));
-      assert.deepStrictEqual(localState['default'].activePresets, ['presetB']);
     } finally {
-      process.chdir(originalCwd);
+      console.error = originalConsoleError;
     }
+
+    assert.ok(output.includes('Work with local skills is not supported. Please use the -g/--global flag.'));
   });
 
-  it('22. should fall back to loading the global state file when the local state file is missing', () => {
-    const originalCwd = process.cwd();
-    process.chdir(sandboxPath);
-
-    const localAgentsDir = path.join(sandboxPath, '.agents');
-    const localStateFile = path.join(localAgentsDir, 'skillsman-state.json');
-    if (fs.existsSync(localStateFile)) {
-      fs.unlinkSync(localStateFile);
-    }
+  it('22. should print error and exit with 1 when running native CLI command without -g option', () => {
+    const cliPath = path.resolve(__dirname, '..', '..', 'cli.js');
+    const sandboxEnv = {
+      ...process.env,
+      XDG_CONFIG_HOME: path.join(sandboxPath, 'config'),
+      XDG_STATE_HOME: path.join(sandboxPath, 'state'),
+      XDG_DATA_HOME: path.join(sandboxPath, 'data'),
+      APPDATA: path.join(sandboxPath, 'config'),
+      LOCALAPPDATA: path.join(sandboxPath, 'state'),
+      USERPROFILE: sandboxPath,
+      HOME: sandboxPath
+    };
 
     try {
-      // 1. Save presetA to the global state
-      const globalState = loadState(true);
-      globalState['default'].activePresets = ['presetA'];
-      saveState(globalState, true);
-
-      // 2. Load the state locally (without -g). It should fall back to the global state!
-      const resolvedState = loadState(false);
-      assert.deepStrictEqual(resolvedState['default'].activePresets, ['presetA']);
-    } finally {
-      process.chdir(originalCwd);
+      execSync(`node "${cliPath}" use presetB`, { env: sandboxEnv, stdio: 'pipe' });
+      assert.fail('Should have exited with code 1 due to missing global flag');
+    } catch (err) {
+      assert.strictEqual(err.status, 1);
+      const stderr = err.stderr.toString();
+      assert.ok(stderr.includes('Work with local skills is not supported. Please use the -g/--global flag.'));
     }
   });
 

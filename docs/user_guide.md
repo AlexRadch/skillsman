@@ -4,9 +4,9 @@ Welcome to the **skillsman** User Guide. This document provides a complete refer
 
 ---
 
-## 📂 Directory Layout & Scopes
+## 📂 Directory Layout & Scope
 
-`skillsman` separates physical skills, user configuration presets, machine state, and active link projections. It runs in **Local Project Scope** by default, with support for **Global Scope** via the `-g / --global` option.
+`skillsman` separates physical skills, user configuration presets, machine state, and active link projections. It operates exclusively in **Global Scope** via the required `-g / --global` option.
 
 ### 1. User Configuration Presets (Always Global)
 
@@ -22,17 +22,11 @@ Welcome to the **skillsman** User Guide. This document provides a complete refer
   * Windows: `C:\Users\<user>\AppData\Local\skillsman\.agents\skills\`
 * **Purpose**: Physical source storage for all installed and developed skills.
 
-### 3. Local Project Scope (Default)
-
-* **Active Projections**: Created relative to `process.cwd()` under the target agent's folder (e.g. `./.agents/skills/` or `./.claude/skills/`).
-* **Project State**: Saved in `./.agents/skillsman-state.json`.
-* **Fallback Behavior**: When loading, if the local state file does not exist, `skillsman` automatically falls back to loading the global state.
-* **On-Demand Creation**: Local state and folder structure are created on-the-fly when you write state changes (e.g., running `skillsman use dev`).
-
-### 4. Global Scope (`-g / --global`)
+### 3. Global Scope (Mandatory)
 
 * **Active Projections**: Created relative to `USER_HOME` (e.g., `~/.agents/skills/` or `~/.claude/skills/`).
 * **Global State**: Saved under XDG State Home (`~/.local/state/skillsman/state.json`).
+* **Requirement**: The `-g / --global` option must be passed for all native commands. Local project-specific skills are not supported.
 
 ---
 

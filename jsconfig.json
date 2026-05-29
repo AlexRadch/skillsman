@@ -6,7 +6,8 @@
     "allowJs": true,
     "noEmit": true,
     "strict": false,
-    "types": ["node"]
+    "types": ["node"],
+    "resolveJsonModule": true
   },
   "include": [
     "index.js",

@@ -11,6 +11,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Enforced Global-Only State and Symlink Logic**: All internal state loading, saving, path resolutions, and symlink projections are now executed strictly on the global level (`~/.config/skillsman/`, `~/.local/state/skillsman/`, `~/.local/share/skillsman/`), completely removing the deprecated local project scope state files and fallback code.
+
+### Changed
+
+- **Removed Local Skills Support**: Native preset commands (`collect`, `use`, `status`, `activate`, `deactivate`, `presets`) now strictly require the `-g / --global` flag. Executing these commands without the global flag prints an unsupported error message and exits with status code 1.
+- **Global Fallback for Delegated Commands**: Configured delegated `skills` CLI commands (like `list`, `add`, `remove`, `init`) to run successfully both with and without the `-g` flag, while all their pre-hooks, post-hooks, and sandboxed environments internally operate in global-only mode.
+
 ## [0.5.0] - 2026-05-27
 
 ### Changed

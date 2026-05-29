@@ -127,17 +127,9 @@ describe('XDG Path Resolution Unit Tests', () => {
       assert.strictEqual(getAgentConfigKey('replit', true), 'config_agents');
       assert.strictEqual(getAgentConfigKey('universal', true), 'config_agents');
     });
-
     it('should preserve distinct agent keys like aider-desk', () => {
       assert.strictEqual(getAgentConfigKey('aider-desk', true), 'aider-desk');
       assert.strictEqual(getAgentConfigKey('claude-code', true), 'claude-code');
-    });
-
-    it('should map replit, cursor, antigravity to default config key when isGlobal is false', () => {
-      assert.strictEqual(getAgentConfigKey('replit', false), 'default');
-      assert.strictEqual(getAgentConfigKey('cursor', false), 'default');
-      assert.strictEqual(getAgentConfigKey('antigravity', false), 'default');
-      assert.strictEqual(getAgentConfigKey('config_agents', false), 'default');
     });
   });
 
@@ -149,23 +141,6 @@ describe('XDG Path Resolution Unit Tests', () => {
       assert.strictEqual(getAgentSkillsDir('replit', dummyHome), expectedPath);
       assert.strictEqual(getAgentSkillsDir('universal', dummyHome), expectedPath);
       assert.strictEqual(getAgentSkillsDir('config_agents', dummyHome), expectedPath);
-    });
-  });
-
-  describe('local project path resolution', () => {
-    it('should resolve default skills path relative to process.cwd() when isGlobal is false', () => {
-      const resolved = getAgentSkillsDir('default', false);
-      assert.strictEqual(resolved, path.join(process.cwd(), '.agents', 'skills'));
-    });
-
-    it('should resolve aider-desk skills path relative to process.cwd() when isGlobal is false', () => {
-      const resolved = getAgentSkillsDir('aider-desk', false);
-      assert.strictEqual(resolved, path.join(process.cwd(), '.aider-desk', 'skills'));
-    });
-
-    it('should resolve config_agents skills path relative to process.cwd() when isGlobal is false', () => {
-      const resolved = getAgentSkillsDir('replit', false);
-      assert.strictEqual(resolved, path.join(process.cwd(), '.agents', 'skills'));
     });
   });
 });

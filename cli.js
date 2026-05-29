@@ -37,6 +37,34 @@ function main() {
     .option('-a, --agent <agent...>', 'Target specific AI agents (space-separated or repeated)')
     .option('-g, --global', 'Operate on the global/user level instead of the local project level');
 
+  program.hook('preAction', (thisCommand, actionCommand) => {
+    const opts = program.opts();
+    const cmdName = actionCommand.name();
+
+    if (cmdName === 'help') {
+      return;
+    }
+
+    const DELEGATED_COMMANDS = [
+      'list', 'ls',
+      'add', 'a',
+      'remove', 'rm',
+      'update', 'upgrade',
+      'find',
+      'init',
+      'experimental_install',
+      'experimental_sync'
+    ];
+
+    if (!opts.global) {
+      if (DELEGATED_COMMANDS.includes(cmdName)) {
+        return;
+      }
+      console.error('Error: Work with local skills is not supported. Please use the -g/--global flag.');
+      process.exit(1);
+    }
+  });
+
   // === NATIVE SKILLSMAN PRESET COMMANDS ===
 
   program

@@ -80,14 +80,11 @@ let STATE_FILE = path.join(getXdgStateHome(), 'skillsman', 'state.json');
 
 /**
  * Resolves the state file path.
- * @param {boolean} [isGlobal] - Whether to use the global state
+ * @param {boolean} [isGlobal] - Unused, retained for signature compatibility
  * @returns {string} The absolute path to state.json
  */
 function getStateFile(isGlobal = IS_TEST_ENV) {
-  if (isGlobal) {
-    return STATE_FILE;
-  }
-  return path.join(process.cwd(), '.agents', 'skillsman-state.json');
+  return STATE_FILE;
 }
 
 /**
@@ -200,26 +197,18 @@ function getAgentConfigKey(agentKey, isGlobal = IS_TEST_ENV) {
  * Resolves the absolute directory path for a given agent key.
  * Maps alias keys ('cline', 'dexto', 'warp') to the common 'default' path.
  * @param {string} agentKey - The agent key (e.g. 'default', 'aider-desk')
- * @param {boolean|string} [isGlobalOrHome] - Scope flag or explicit home path
+ * @param {boolean|string} [isGlobalOrHome] - Unused or explicit home path
  * @returns {string} The resolved absolute skills directory path
  */
 function getAgentSkillsDir(agentKey, isGlobalOrHome = IS_TEST_ENV) {
-  let home;
-  let isGlobal;
-
-  if (typeof isGlobalOrHome === 'string') {
-    home = isGlobalOrHome;
-    isGlobal = true;
-  } else {
-    isGlobal = !!isGlobalOrHome;
-    home = isGlobal ? USER_HOME : process.cwd();
-  }
+  const home = typeof isGlobalOrHome === 'string' ? isGlobalOrHome : USER_HOME;
+  const isGlobal = true;
 
   const configKey = getAgentConfigKey(agentKey, isGlobal);
   const agentInfo = SUPPORTED_AGENTS[configKey] || SUPPORTED_AGENTS['default'];
-  const relPath = isGlobal ? agentInfo.globalPath : agentInfo.projectPath;
+  const relPath = agentInfo.globalPath;
 
-  if (configKey === 'default' && isGlobal && home === USER_HOME) {
+  if (configKey === 'default' && home === USER_HOME) {
     return SKILLS_DIR;
   }
 
@@ -267,24 +256,11 @@ function getDefaultState() {
 
 /**
  * Loads the state from state.json
- * @param {boolean} [isGlobal] - Whether to load the global state (defaults to false)
+ * @param {boolean} [isGlobal] - Unused, retained for signature compatibility
  * @returns {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>}
  */
 function loadState(isGlobal = IS_TEST_ENV) {
-  const file = getStateFile(isGlobal);
-
-  // Dynamic fallback: if local state file does not exist, fall back to global state file
-  if (!isGlobal && !fs.existsSync(file)) {
-    const globalFile = getStateFile(true);
-    if (fs.existsSync(globalFile)) {
-      try {
-        const data = fs.readFileSync(globalFile, 'utf8');
-        const globalState = parseStateJSON(data);
-        return convertGlobalToLocalState(globalState);
-      } catch (err) { }
-    }
-    return getDefaultState();
-  }
+  const file = STATE_FILE;
 
   if (!fs.existsSync(file)) {
     return getDefaultState();
@@ -295,62 +271,6 @@ function loadState(isGlobal = IS_TEST_ENV) {
   } catch (err) {
     return getDefaultState();
   }
-}
-
-/**
- * Converts a global state object to a local state object by merging
- * all agent configurations that share the local '.agents/skills' project path into the 'default' key.
- * @param {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>} globalState - The global state object
- * @returns {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>} The converted local state object
- */
-function convertGlobalToLocalState(globalState) {
-  /** @type {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>} */
-  const localState = {
-    'default': {
-      activePresets: [],
-      alwaysPresets: ['always'],
-      neverPresets: ['never']
-    }
-  };
-
-  const defaultActive = new Set();
-  const defaultAlways = new Set(['always']);
-  const defaultNever = new Set(['never']);
-
-  for (const key of Object.keys(globalState)) {
-    const configKey = key;
-    let isLocalDefault = false;
-
-    const agentEntry = Object.values(SUPPORTED_AGENTS).find(info => info.globalKey === configKey);
-    if (agentEntry && agentEntry.projectPath === '.agents/skills') {
-      isLocalDefault = true;
-    } else if (configKey === 'default') {
-      isLocalDefault = true;
-    }
-
-    if (isLocalDefault) {
-      const agentState = globalState[configKey];
-      if (agentState) {
-        if (Array.isArray(agentState.activePresets)) {
-          for (const p of agentState.activePresets) defaultActive.add(p);
-        }
-        if (Array.isArray(agentState.alwaysPresets)) {
-          for (const p of agentState.alwaysPresets) defaultAlways.add(p);
-        }
-        if (Array.isArray(agentState.neverPresets)) {
-          for (const p of agentState.neverPresets) defaultNever.add(p);
-        }
-      }
-    } else {
-      localState[configKey] = JSON.parse(JSON.stringify(globalState[configKey]));
-    }
-  }
-
-  localState['default'].activePresets = Array.from(defaultActive);
-  localState['default'].alwaysPresets = Array.from(defaultAlways);
-  localState['default'].neverPresets = Array.from(defaultNever);
-
-  return localState;
 }
 
 /**
@@ -382,11 +302,11 @@ function parseStateJSON(data) {
 /**
  * Saves the state to state.json
  * @param {Record<string, { activePresets: string[], alwaysPresets: string[], neverPresets: string[] }>} state - The state object to save
- * @param {boolean} [isGlobal] - Whether to save to global state (defaults to false)
+ * @param {boolean} [isGlobal] - Unused, retained for signature compatibility
  * @returns {void}
  */
 function saveState(state, isGlobal = IS_TEST_ENV) {
-  const file = getStateFile(isGlobal);
+  const file = STATE_FILE;
   try {
     const stateDir = path.dirname(file);
     if (!fs.existsSync(stateDir)) {
@@ -565,6 +485,10 @@ function resolveFinalSkills(state) {
  * @returns {void}
  */
 function collect(agentKeys, isGlobal = IS_TEST_ENV) {
+  if (!isGlobal) {
+    console.error('Error: Work with local skills is not supported. Please use the -g/--global flag.');
+    return;
+  }
   validateAgentKeys(agentKeys);
   console.log('\x1b[36m%s\x1b[0m', '=== Collecting Skills and Initializing Environment ===');
 
@@ -796,6 +720,10 @@ function listPresets() {
  * @returns {void}
  */
 function showStatus(agentKeys, isGlobal = IS_TEST_ENV) {
+  if (!isGlobal) {
+    console.error('Error: Work with local skills is not supported. Please use the -g/--global flag.');
+    return;
+  }
   validateAgentKeys(agentKeys);
   const multiState = loadState(isGlobal);
 
@@ -859,6 +787,10 @@ function showStatus(agentKeys, isGlobal = IS_TEST_ENV) {
  * @returns {void}
  */
 function syncState(isGlobal = IS_TEST_ENV) {
+  if (!isGlobal) {
+    console.error('Error: Work with local skills is not supported. Please use the -g/--global flag.');
+    return;
+  }
   const multiState = loadState(isGlobal);
   const presetsDir = getPresetsDir();
   const libraryDir = getLibraryDir();
@@ -1001,6 +933,10 @@ function syncState(isGlobal = IS_TEST_ENV) {
  * @returns {void}
  */
 function usePresets(presetArgs = [], agentKeys = ['default'], isGlobal = IS_TEST_ENV) {
+  if (!isGlobal) {
+    console.error('Error: Work with local skills is not supported. Please use the -g/--global flag.');
+    return;
+  }
   validateAgentKeys(agentKeys);
   const targetAgents = (!agentKeys || agentKeys.length === 0) ? ['default'] : agentKeys;
 
@@ -1107,6 +1043,10 @@ function usePresets(presetArgs = [], agentKeys = ['default'], isGlobal = IS_TEST
  * @returns {void}
  */
 function cleanRemovedSkillsAndPresets(removedSkills = [], isGlobal = IS_TEST_ENV) {
+  if (!isGlobal) {
+    console.error('Error: Work with local skills is not supported. Please use the -g/--global flag.');
+    return;
+  }
   // Deactivate the removed skills from the activePresets of the default agent in the current state
   try {
     const state = loadState(isGlobal);
@@ -1136,6 +1076,7 @@ function cleanRemovedSkillsAndPresets(removedSkills = [], isGlobal = IS_TEST_ENV
  * @returns {void}
  */
 function delegateToSkillsCLI(command, args = [], isGlobal = IS_TEST_ENV) {
+  isGlobal = true; // Always behave as if -g / global flag was passed
   const { spawnSync } = require('child_process');
 
   const stateFile = getStateFile(isGlobal);
