@@ -590,4 +590,60 @@ skills:
     // Verify that the dead link was successfully cleaned up and deleted!
     assert.ok(!fs.existsSync(deadLinkPath), 'dead/mismatched link should be cleaned up even if missing from library');
   });
+
+  it('26. should restore a missing skill from store to library and keep/create valid symlink when syncing a dead active symlink', () => {
+    const currentPaths = skillsman.tests.getPaths();
+    const testLibraryDir = currentPaths.LIBRARY_DIR;
+    const testStoreDir = currentPaths.STORE_DIR;
+    const testPresetsDir = currentPaths.PRESETS_DIR;
+    const defaultAgentSkillsDir = skillsman.tests.getAgentSkillsDir('default', true);
+
+    const skillName = 'restorable-skill';
+    const storeSkillPath = path.join(testStoreDir, skillName);
+    const librarySkillPath = path.join(testLibraryDir, skillName);
+    const activeLinkPath = path.join(defaultAgentSkillsDir, skillName);
+
+    // 1. Ensure clean state
+    try { fs.rmSync(storeSkillPath, { recursive: true, force: true }); } catch (e) {}
+    try { fs.rmSync(librarySkillPath, { recursive: true, force: true }); } catch (e) {}
+    try { fs.unlinkSync(activeLinkPath); } catch (e) {}
+
+    // 2. Create physical skill folder ONLY in storeDir
+    fs.mkdirSync(storeSkillPath, { recursive: true });
+    fs.writeFileSync(path.join(storeSkillPath, 'instruction.txt'), 'restored-content', 'utf8');
+
+    // 3. Pre-create a dead symlink in active skills directory pointing to the library path (which doesn't exist yet)
+    const isWindows = process.platform === 'win32';
+    fs.symlinkSync(librarySkillPath, activeLinkPath, isWindows ? 'junction' : 'dir');
+
+    // 4. Update state to include this skill in activePresets via preset
+    fs.writeFileSync(path.join(testPresetsDir, 'restorePreset.md'), `---
+name: restorePreset
+skills:
+  - ${skillName}
+---`, 'utf8');
+
+    const state = loadState(true);
+    state['default'].activePresets = ['restorePreset'];
+    state['default'].alwaysPresets = [];
+    saveState(state, true);
+
+    // 5. Run usePresets to trigger sync
+    usePresets([], undefined, true);
+
+    // 6. Verify skill is restored in library
+    assert.ok(fs.existsSync(librarySkillPath), 'Skill should be restored to library');
+    assert.strictEqual(
+      fs.readFileSync(path.join(librarySkillPath, 'instruction.txt'), 'utf8'),
+      'restored-content'
+    );
+
+    // 7. Verify symlink is valid and points to the correct library path
+    assert.ok(fs.existsSync(activeLinkPath), 'Active symlink should exist and be valid');
+    assert.strictEqual(
+      path.resolve(defaultAgentSkillsDir, fs.readlinkSync(activeLinkPath)),
+      path.resolve(librarySkillPath)
+    );
+  });
 });
+

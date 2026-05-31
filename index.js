@@ -901,6 +901,16 @@ function syncState(isGlobal = IS_TEST_ENV) {
       const targetPath = path.join(libraryDir, skillName);
       const linkPath = path.join(skillsDir, skillName);
 
+      // Validate physical existence in library before checking link status
+      // If missing in libraryDir but exists in STORE_DIR, restore it!
+      if (!fs.existsSync(targetPath)) {
+        const storePath = path.join(storeDir, skillName);
+        if (fs.existsSync(storePath)) {
+          fs.cpSync(storePath, targetPath, { recursive: true });
+          console.log(`  \x1b[32m✔\x1b[0m Restored skill from store to library: ${skillName}`);
+        }
+      }
+
       const currentLinkTarget = activeSymlinks[skillName];
       if (currentLinkTarget) {
         // Already linked. Verify target matches (robustly check physical paths to handle symlinks/junctions/drives redirects)
@@ -926,17 +936,10 @@ function syncState(isGlobal = IS_TEST_ENV) {
         continue;
       }
 
-      // Validate physical existence in library before creating link
-      // If missing in libraryDir but exists in STORE_DIR, restore it!
+      // Ensure target folder exists before creating link
       if (!fs.existsSync(targetPath)) {
-        const storePath = path.join(storeDir, skillName);
-        if (fs.existsSync(storePath)) {
-          fs.cpSync(storePath, targetPath, { recursive: true });
-          console.log(`  \x1b[32m✔\x1b[0m Restored skill from store to library: ${skillName}`);
-        } else {
-          console.error(`\x1b[31mError: Skill "${skillName}" is not found in library directory ${libraryDir}.\x1b[0m`);
-          continue;
-        }
+        console.error(`\x1b[31mError: Skill "${skillName}" is not found in library directory ${libraryDir}.\x1b[0m`);
+        continue;
       }
 
       // Create link

@@ -65,3 +65,9 @@ Full coding conventions are documented in [**`docs/developer_guide.md`**](docs/d
 ### 7. Explicit Alignment Before Action
 
 * **No Premature Execution**: If the user asks "How will we fix it?" or requests a design discussion, the agent **MUST** first describe the proposed solution and wait for the user's explicit confirmation **before** modifying any files or running commands that alter the codebase state.
+
+### 8. Test-Driven Bug Fixing (TDD)
+
+* **Write Tests First**: Before resolving any bug or implementing a fix, the agent **MUST** first write failing integration or unit tests that reproduce all boundary/edge-case conditions.
+* **Verify Failure**: Run the test suite and ensure the newly added tests fail on the current implementation.
+* **Implement Fix & Pass**: Apply the code changes and verify that all tests now pass successfully.
